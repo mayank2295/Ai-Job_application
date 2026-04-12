@@ -1,44 +1,45 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import db from '../database/db';
 import { PowerAutomateService } from '../services/powerAutomate';
+import { AzureBlobStorageService } from '../services/azureBlobStorage';
 
 const router = Router();
 
-// Configure multer for file uploads
-const uploadDir = path.join(process.cwd(), 'uploads', 'resumes');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadDir),
-  filename: (_req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
+const ALLOWED_EXTENSIONS = new Set(['.pdf', '.doc', '.docx']);
+const ALLOWED_MIME_TYPES = new Set([
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/octet-stream',
+]);
 
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
   fileFilter: (_req, file, cb) => {
-    const allowedTypes = ['.pdf', '.doc', '.docx', '.txt'];
     const ext = path.extname(file.originalname).toLowerCase();
-    if (allowedTypes.includes(ext)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only PDF, DOC, DOCX, and TXT files are allowed'));
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      cb(new Error('Only PDF, DOC, and DOCX files are allowed'));
+      return;
     }
+
+    const mimeType = (file.mimetype || '').toLowerCase();
+    if (!ALLOWED_MIME_TYPES.has(mimeType)) {
+      cb(new Error('Invalid file type for resume upload'));
+      return;
+    }
+
+    cb(null, true);
   }
 });
 
 // POST /api/resumes/upload/:applicationId - Upload resume for an application
 router.post('/upload/:applicationId', upload.single('resume'), async (req: Request, res: Response) => {
   try {
-    const { applicationId } = req.params;
+    const applicationId = String(req.params.applicationId);
     const file = req.file;
 
     if (!file) {
@@ -49,23 +50,35 @@ router.post('/upload/:applicationId', upload.single('resume'), async (req: Reque
     // Check application exists
     const application = db.prepare('SELECT * FROM applications WHERE id = ?').get(applicationId) as any;
     if (!application) {
-      // Clean up uploaded file
-      fs.unlinkSync(file.path);
       res.status(404).json({ error: 'Application not found' });
       return;
     }
 
-    // Update application with resume info
-    db.prepare(`
-      UPDATE applications SET resume_filename = ?, resume_path = ?, updated_at = ?
-      WHERE id = ?
-    `).run(file.originalname!, file.path, new Date().toISOString(), applicationId);
+    const uploadResult = await AzureBlobStorageService.uploadResume({
+      applicationId,
+      fileBuffer: file.buffer,
+      originalName: file.originalname,
+      contentType: file.mimetype,
+    });
+
+    try {
+      // Store stable blob URL in DB; signed URL is generated on demand.
+      db.prepare(`
+        UPDATE applications SET resume_filename = ?, resume_path = ?, updated_at = ?
+        WHERE id = ?
+      `).run(file.originalname, uploadResult.blobUrl, new Date().toISOString(), applicationId);
+    } catch (dbError) {
+      await AzureBlobStorageService.deleteBlob(uploadResult.blobName).catch((cleanupError) => {
+        console.error('Failed to cleanup blob after DB error:', cleanupError);
+      });
+      throw dbError;
+    }
 
     // Trigger resume analysis flow
     PowerAutomateService.triggerResumeAnalysisFlow({
       applicationId: applicationId as string,
-      resumeFilename: file.originalname!,
-      resumePath: file.path,
+      resumeFilename: file.originalname,
+      resumePath: uploadResult.accessUrl,
       applicantName: application.full_name,
       position: application.position
     }).catch(err => console.error('Resume analysis trigger error:', err));
@@ -73,11 +86,12 @@ router.post('/upload/:applicationId', upload.single('resume'), async (req: Reque
     res.json({
       message: 'Resume uploaded successfully',
       filename: file.originalname,
-      size: file.size
+      size: file.size,
+      fileUrl: uploadResult.blobUrl,
     });
   } catch (error: any) {
     console.error('Error uploading resume:', error);
-    res.status(500).json({ error: 'Failed to upload resume' });
+    res.status(500).json({ error: error?.message || 'Failed to upload resume' });
   }
 });
 
@@ -91,6 +105,16 @@ router.get('/:applicationId/download', (req: Request, res: Response) => {
       return;
     }
 
+    if (application.resume_path.startsWith('http://') || application.resume_path.startsWith('https://')) {
+      AzureBlobStorageService.getReadUrlFromStoredUrl(application.resume_path)
+        .then((signedUrl) => res.redirect(signedUrl))
+        .catch((error) => {
+          console.error('Error generating signed resume URL:', error);
+          res.status(500).json({ error: 'Failed to generate resume download link' });
+        });
+      return;
+    }
+
     if (!fs.existsSync(application.resume_path)) {
       res.status(404).json({ error: 'Resume file not found on disk' });
       return;
@@ -101,6 +125,24 @@ router.get('/:applicationId/download', (req: Request, res: Response) => {
     console.error('Error downloading resume:', error);
     res.status(500).json({ error: 'Failed to download resume' });
   }
+});
+
+router.use((error: any, _req: Request, res: Response, _next: NextFunction) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      res.status(400).json({ error: 'File too large. Maximum allowed size is 10MB' });
+      return;
+    }
+    res.status(400).json({ error: error.message });
+    return;
+  }
+
+  if (error) {
+    res.status(400).json({ error: error.message || 'Invalid upload request' });
+    return;
+  }
+
+  res.status(500).json({ error: 'Upload processing failed' });
 });
 
 export default router;

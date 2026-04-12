@@ -104,6 +104,7 @@ export class PowerAutomateService {
         body: JSON.stringify({
           applicationId: data.applicationId,
           resumeFilename: data.resumeFilename,
+          resumeUrl: data.resumePath,
           applicantName: data.applicantName,
           position: data.position,
           callbackUrl: `${process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace('5173', '3001') : 'http://localhost:3001'}/api/webhooks/resume-analyzed`

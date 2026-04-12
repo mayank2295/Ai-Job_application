@@ -35,6 +35,9 @@ const positions = [
   'Project Manager',
 ];
 
+const MAX_RESUME_SIZE = 10 * 1024 * 1024;
+const ALLOWED_RESUME_EXTENSIONS = ['.pdf', '.doc', '.docx'];
+
 export default function ApplyPage() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
@@ -87,6 +90,24 @@ export default function ApplyPage() {
     setError('');
   };
 
+  const validateResumeFile = (file: File): boolean => {
+    const filename = file.name.toLowerCase();
+    const isAllowedType = ALLOWED_RESUME_EXTENSIONS.some((ext) => filename.endsWith(ext));
+
+    if (!isAllowedType) {
+      setError('Only PDF, DOC, and DOCX files are allowed');
+      return false;
+    }
+
+    if (file.size > MAX_RESUME_SIZE) {
+      setError('Resume file size must be 10MB or less');
+      return false;
+    }
+
+    setError('');
+    return true;
+  };
+
   const handleSubmit = async () => {
     setSubmitting(true);
     setError('');
@@ -115,7 +136,9 @@ export default function ApplyPage() {
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
-    if (file) setResumeFile(file);
+    if (file && validateResumeFile(file)) {
+      setResumeFile(file);
+    }
   };
 
   if (submitted) {
@@ -297,16 +320,18 @@ export default function ApplyPage() {
                   Click to upload or drag and drop
                 </div>
                 <div className="file-upload-hint">
-                  PDF, DOC, DOCX, TXT (max 10MB)
+                  PDF, DOC, DOCX (max 10MB)
                 </div>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf,.doc,.docx,.txt"
+                  accept=".pdf,.doc,.docx"
                   style={{ display: 'none' }}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) setResumeFile(file);
+                    if (file && validateResumeFile(file)) {
+                      setResumeFile(file);
+                    }
                   }}
                 />
               </div>

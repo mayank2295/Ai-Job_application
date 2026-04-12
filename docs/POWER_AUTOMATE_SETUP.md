@@ -109,6 +109,7 @@ Click "Use sample payload to generate schema" and paste:
 {
   "applicationId": "abc-123",
   "resumeFilename": "john-doe-resume.pdf",
+  "resumeUrl": "https://<storage-account>.blob.core.windows.net/resumes/...",
   "applicantName": "John Doe",
   "position": "Software Engineer",
   "callbackUrl": "http://localhost:3001/api/webhooks/resume-analyzed"

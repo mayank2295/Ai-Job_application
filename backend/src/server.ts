@@ -6,6 +6,7 @@ import { initializeDatabase } from './database/db';
 
 // Load environment variables
 dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local'), override: true });
 
 // Import routes
 import applicationRoutes from './routes/applications';
