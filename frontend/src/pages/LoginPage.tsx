@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Bot, Building2, LogIn, MapPin, Sparkles, Star } from 'lucide-react';
 import './LoginPage.css';
 import { useAuth } from '../context/AuthContext';
-import { isFirebaseConfigured } from '../lib/firebase';
 
 const highlightedJobs = [
   { role: 'Frontend Engineer', company: 'Orbit Labs', location: 'Bangalore', match: '96%' },
@@ -16,10 +15,6 @@ const highlightedJobs = [
 
 function getAuthErrorMessage(error: unknown, method: 'email-signin' | 'email-signup' | 'google') {
   const code = (error as { code?: string } | null)?.code;
-
-  if (code === 'firebase/not-configured') {
-    return 'Firebase is not configured for the frontend. Add VITE_FIREBASE_* variables in your hosting environment (or frontend/.env.local) and redeploy.';
-  }
 
   if (code === 'auth/operation-not-allowed') {
     if (method === 'email-signin' || method === 'email-signup') {
@@ -50,10 +45,6 @@ export default function LoginPage() {
   const [authError, setAuthError] = useState('');
   const redirectTarget =
     (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/dashboard';
-
-  if (!isFirebaseConfigured) {
-    return <Navigate to="/dashboard" replace />;
-  }
 
   if (user) {
     return <Navigate to={redirectTarget} replace />;

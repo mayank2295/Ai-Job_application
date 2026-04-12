@@ -13,7 +13,6 @@ import {
   Zap,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { isFirebaseConfigured } from '../lib/firebase';
 import './LandingPage.css';
 
 const reveal = {
@@ -116,7 +115,6 @@ const liveEvents = [
 
 export default function LandingPage() {
   const { user } = useAuth();
-  const primaryHref = !isFirebaseConfigured ? '/dashboard' : user ? '/dashboard' : '/login';
 
   return (
     <div className="lp-page">
@@ -139,7 +137,7 @@ export default function LandingPage() {
           <a href="#workflow">Workflow</a>
           <a href="#security">Security</a>
         </nav>
-        <Link to={primaryHref} className="lp-btn lp-btn-primary">
+        <Link to={user ? '/dashboard' : '/login'} className="lp-btn lp-btn-primary">
           {user ? 'Login to Dashboard' : 'Login'}
         </Link>
       </header>
@@ -156,7 +154,7 @@ export default function LandingPage() {
             </motion.p>
 
             <motion.div className="lp-actions" variants={reveal}>
-              <Link to={primaryHref} className="lp-btn lp-btn-primary">
+              <Link to={user ? '/dashboard' : '/login'} className="lp-btn lp-btn-primary">
                 {user ? 'Open Dashboard' : 'Login to Dashboard'} <ArrowRight size={16} />
               </Link>
               <a href="#workflow" className="lp-btn lp-btn-secondary">View workflow</a>
@@ -347,7 +345,7 @@ export default function LandingPage() {
           <h2>Ready to simplify your hiring workflow?</h2>
           <p>Track applications, analyze resumes, and move faster with one AI-first hiring system.</p>
           <div className="lp-actions">
-            <Link to={primaryHref} className="lp-btn lp-btn-primary">
+            <Link to={user ? '/dashboard' : '/login'} className="lp-btn lp-btn-primary">
               {user ? 'Open Dashboard' : 'Login to Dashboard'}
             </Link>
             <a href="#features" className="lp-btn lp-btn-secondary">Explore features</a>
@@ -361,7 +359,7 @@ export default function LandingPage() {
           <a href="#automation-live">Live Demo</a>
           <a href="#features">Features</a>
           <a href="#workflow">How it works</a>
-          {isFirebaseConfigured && <Link to="/login">Login</Link>}
+          <Link to="/login">Login</Link>
           <a href="#contact">Contact</a>
           <a href="#">Privacy Policy</a>
           <a href="#">Terms of Service</a>

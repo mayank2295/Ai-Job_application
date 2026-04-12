@@ -1,8 +1,8 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, Home, Search } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { Bell, Search } from 'lucide-react';
 
 const pageTitles: Record<string, string> = {
-  '/dashboard': 'Dashboard',
+  '/': 'Dashboard',
   '/apply': 'Submit Application',
   '/applications': 'All Applications',
   '/workflows': 'Power Automate Workflows',
@@ -12,7 +12,6 @@ const pageTitles: Record<string, string> = {
 
 export default function Navbar() {
   const location = useLocation();
-  const navigate = useNavigate();
 
   const getTitle = () => {
     if (location.pathname.startsWith('/applications/')) return 'Application Details';
@@ -22,17 +21,6 @@ export default function Navbar() {
   return (
     <header className="navbar">
       <div className="navbar-left">
-        <button
-          className="navbar-icon-btn"
-          type="button"
-          title="Back"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft />
-        </button>
-        <Link className="navbar-icon-btn" to="/" title="Landing page">
-          <Home />
-        </Link>
         <h2 className="navbar-page-title">{getTitle()}</h2>
       </div>
       <div className="navbar-right">

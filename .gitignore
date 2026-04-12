@@ -13,9 +13,6 @@ yarn-error.log*
 
 # Backend specific
 backend/data/applications.db
-backend/data/*.db-wal
-backend/data/*.db-shm
-backend/data/*.db-journal
 backend/uploads/
 backend/dist/
 
@@ -27,8 +24,3 @@ frontend/*.local
 # Mac/Windows OS files
 .DS_Store
 Thumbs.db
-
-# SQLite sidecar files (general)
-*.db-wal
-*.db-shm
-*.db-journal

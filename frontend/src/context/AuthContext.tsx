@@ -15,7 +15,7 @@ import {
   type User,
 } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { auth, db, googleProvider, isFirebaseConfigured, firebaseConfigError } from '../lib/firebase';
+import { auth, db, googleProvider } from '../lib/firebase';
 
 type AuthContextValue = {
   user: User | null;
@@ -33,24 +33,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !auth || !db) {
-      if (firebaseConfigError) {
-        console.warn(firebaseConfigError);
-      }
-      setLoading(false);
-      return;
-    }
-
-    const authInstance = auth;
-    const firestore = db;
-
-    const unsubscribe = onAuthStateChanged(authInstance, async (nextUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
       setUser(nextUser);
 
       if (nextUser) {
         try {
           await setDoc(
-            doc(firestore, 'users', nextUser.uid),
+            doc(db, 'users', nextUser.uid),
             {
               uid: nextUser.uid,
               displayName: nextUser.displayName || '',
@@ -77,31 +66,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       async signUpWithEmail(email: string, password: string) {
-        if (!isFirebaseConfigured || !auth) {
-          const err = new Error(firebaseConfigError || 'Firebase is not configured');
-          (err as any).code = 'firebase/not-configured';
-          throw err;
-        }
         await createUserWithEmailAndPassword(auth, email, password);
       },
       async signInWithEmail(email: string, password: string) {
-        if (!isFirebaseConfigured || !auth) {
-          const err = new Error(firebaseConfigError || 'Firebase is not configured');
-          (err as any).code = 'firebase/not-configured';
-          throw err;
-        }
         await signInWithEmailAndPassword(auth, email, password);
       },
       async signInWithGoogle() {
-        if (!isFirebaseConfigured || !auth || !googleProvider) {
-          const err = new Error(firebaseConfigError || 'Firebase is not configured');
-          (err as any).code = 'firebase/not-configured';
-          throw err;
-        }
         await signInWithPopup(auth, googleProvider);
       },
       async logout() {
-        if (!isFirebaseConfigured || !auth) return;
         await signOut(auth);
       },
     }),
