@@ -84,4 +84,11 @@ export const api = {
 
   // Health
   checkHealth: () => request<any>('/health'),
+
+  // AI
+  chatWithAI: (messages: any[]) =>
+    request<{ text: string }>('/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({ messages }),
+    }),
 };
