@@ -14,7 +14,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { api } from '../api/client';
-import type { Application, WorkflowLog, FollowUp } from '../types';
+import type { Application, WorkflowLog } from '../types';
 
 const statusOptions = ['pending', 'reviewing', 'interviewed', 'accepted', 'rejected'];
 

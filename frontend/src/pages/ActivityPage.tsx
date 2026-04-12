@@ -5,7 +5,6 @@ import {
   XCircle,
   RefreshCw,
   Clock,
-  Filter,
 } from 'lucide-react';
 import { api } from '../api/client';
 import type { WorkflowLog } from '../types';

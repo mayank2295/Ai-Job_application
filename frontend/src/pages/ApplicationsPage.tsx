@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, FileText, PlusCircle } from 'lucide-react';
+import { Search, FileText, PlusCircle } from 'lucide-react';
 import { api } from '../api/client';
 import type { Application } from '../types';
 

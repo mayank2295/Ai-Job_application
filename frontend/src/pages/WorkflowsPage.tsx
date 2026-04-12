@@ -41,7 +41,7 @@ export default function WorkflowsPage() {
   const handleTestTrigger = async (flowType: string) => {
     setTesting(flowType);
     try {
-      const result = await api.testTrigger(flowType);
+      await api.testTrigger(flowType);
       showToast('success', `Test trigger sent for ${flowType} flow`);
       loadWorkflows();
     } catch (err: any) {

@@ -1,7 +1,7 @@
-import React from 'react';
+
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bot, Zap, TrendingUp, ShieldCheck, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Bot, Zap, TrendingUp, ShieldCheck, ArrowRight } from 'lucide-react';
 import './LandingPage.css';
 
 export default function LandingPage() {
