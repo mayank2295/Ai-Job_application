@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Bot, Building2, LogIn, MapPin, Sparkles, Star } from 'lucide-react';
 import './LoginPage.css';
 import { useAuth } from '../context/AuthContext';
+import { isFirebaseConfigured } from '../lib/firebase';
 
 const highlightedJobs = [
   { role: 'Frontend Engineer', company: 'Orbit Labs', location: 'Bangalore', match: '96%' },
@@ -49,6 +50,10 @@ export default function LoginPage() {
   const [authError, setAuthError] = useState('');
   const redirectTarget =
     (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/dashboard';
+
+  if (!isFirebaseConfigured) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   if (user) {
     return <Navigate to={redirectTarget} replace />;
