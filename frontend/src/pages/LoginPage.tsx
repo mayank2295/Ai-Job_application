@@ -16,6 +16,10 @@ const highlightedJobs = [
 function getAuthErrorMessage(error: unknown, method: 'email-signin' | 'email-signup' | 'google') {
   const code = (error as { code?: string } | null)?.code;
 
+  if (code === 'firebase/not-configured') {
+    return 'Firebase is not configured for the frontend. Add VITE_FIREBASE_* variables in your hosting environment (or frontend/.env.local) and redeploy.';
+  }
+
   if (code === 'auth/operation-not-allowed') {
     if (method === 'email-signin' || method === 'email-signup') {
       return 'Email/password authentication is disabled. Enable it in Firebase Console > Authentication > Sign-in method.';
