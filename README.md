@@ -76,6 +76,14 @@ App / integration:
 - `PA_NEW_APPLICATION_FLOW_URL`
 - `PA_RESUME_ANALYSIS_FLOW_URL`
 
+AI assistant (Gemini):
+
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL` (default in `.env.example`: `gemini-flash-latest`)
+
+The chat widget lives in `frontend/src/components/AIAssistant.tsx` and calls the backend at `/api/ai/chat`.
+Replies are spoken using the browser’s built-in text-to-speech (`speechSynthesis`).
+
 ## Deployment notes (what I used)
 
 Backend on Render:

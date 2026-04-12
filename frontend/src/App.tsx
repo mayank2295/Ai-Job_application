@@ -12,11 +12,13 @@ import ApplicationDetailPage from './pages/ApplicationDetailPage';
 import WorkflowsPage from './pages/WorkflowsPage';
 import ActivityPage from './pages/ActivityPage';
 import SettingsPage from './pages/SettingsPage';
+import AIAssistant from './components/AIAssistant';
 
 export default function App() {
   return (
     <BrowserRouter>
       <ThemeToggle />
+      <AIAssistant />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />

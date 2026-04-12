@@ -1,6 +1,7 @@
-const API_BASE = import.meta.env.DEV 
-  ? 'http://localhost:3001/api' 
-  : 'https://ai-job-application-1.onrender.com/api';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)
+  ?? (import.meta.env.DEV
+    ? 'http://localhost:3001/api'
+    : 'https://ai-job-application-f11u.onrender.com/api');
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${url}`, {
@@ -88,7 +89,7 @@ export const api = {
   checkHealth: () => request<any>('/health'),
 
   // AI
-  chatWithAI: (messages: any[]) =>
+  chatWithAI: (messages: Array<{ role: 'user' | 'model'; text: string }>) =>
     request<{ text: string }>('/ai/chat', {
       method: 'POST',
       body: JSON.stringify({ messages }),
