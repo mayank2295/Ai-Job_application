@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: smarthire-backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+    environment:
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - PYTHON_SERVICE_URL=http://python-service:8001
+    depends_on:
+      - python-service
+    networks:
+      - smarthire-net
+    restart: unless-stopped
+
+  python-service:
+    build: ./python-service
+    container_name: smarthire-python
+    ports:
+      - "8001:8001"
+    networks:
+      - smarthire-net
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: smarthire-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - smarthire-net
+    restart: unless-stopped
+
+networks:
+  smarthire-net:
+    driver: bridge
