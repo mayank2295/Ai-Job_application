@@ -6,7 +6,7 @@ Small full-stack project for tracking job applications and handling resume uploa
 
 - Lets a candidate submit an application
 - Lets a candidate upload a resume (PDF/DOC/DOCX)
-- Stores application data in SQLite
+- Stores application data in PostgreSQL
 - Stores resumes in Azure Blob Storage (no resume files are saved on the server disk)
 - Provides recruiter-style pages to view applications + activity
 
@@ -72,7 +72,8 @@ App / integration:
 
 - `PORT`
 - `FRONTEND_URL`
-- `DB_PATH`
+- `DATABASE_URL`
+- `DATABASE_SSL` (set `true` when using a provider that requires SSL)
 - `WEBHOOK_API_KEY`
 - `PA_NEW_APPLICATION_FLOW_URL`
 - `PA_RESUME_ANALYSIS_FLOW_URL`
@@ -82,7 +83,7 @@ App / integration:
 Backend on Render:
 
 - Root directory: `backend`
-- Build: `npm ci && npm rebuild better-sqlite3 --build-from-source && npm run build`
+- Build: `npm ci && npm run build`
 - Start: `npm start`
 - Node: `20.x` (native module compatibility)
 
@@ -94,12 +95,9 @@ Frontend on Vercel:
 
 ## Practical gotchas
 
-- `better-sqlite3` is a native module: if you change Node versions or the deploy platform, force a clean rebuild.
 - If you rotate the Azure Storage key, update Render env vars and redeploy.
-- SQLite-on-Render is fine for a demo, not for serious scale.
 
 ## Next improvements (not done)
 
-- Move DB from SQLite to Postgres
 - Add auth/roles for recruiter/admin
 - Add malware scanning before storing resumes

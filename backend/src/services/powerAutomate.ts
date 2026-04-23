@@ -1,4 +1,4 @@
-import db from '../database/db';
+import { all, get, run } from '../database/db';
 
 interface TriggerResult {
   success: boolean;
@@ -27,11 +27,11 @@ export class PowerAutomateService {
     phone?: string;
     created_at: string;
   }): Promise<TriggerResult> {
-    const flowUrl = this.getSettingValue('pa_new_application_url') || process.env.PA_NEW_APPLICATION_FLOW_URL;
+    const flowUrl = (await this.getSettingValue('pa_new_application_url')) || process.env.PA_NEW_APPLICATION_FLOW_URL;
 
     if (!flowUrl) {
       console.log('⚠️  Power Automate URL not configured for New Application flow. Skipping trigger.');
-      this.logWorkflow(applicationData.id, 'instant', 'New Application Notification', 'failed', null, null, 'Flow URL not configured');
+      await this.logWorkflow(applicationData.id, 'instant', 'New Application Notification', 'failed', null, null, 'Flow URL not configured');
       return { success: false, error: 'Flow URL not configured' };
     }
 
@@ -56,10 +56,10 @@ export class PowerAutomateService {
       
       if (response.ok) {
         console.log(`✅ New Application flow triggered successfully`);
-        this.logWorkflow(applicationData.id, 'instant', 'New Application Notification', 'completed', applicationData, responseData);
+        await this.logWorkflow(applicationData.id, 'instant', 'New Application Notification', 'completed', applicationData, responseData);
         
         // Update application workflow status
-        db.prepare('UPDATE applications SET workflow_status = ? WHERE id = ?').run('completed', applicationData.id);
+        await run('UPDATE applications SET workflow_status = $1 WHERE id = $2', ['completed', applicationData.id]);
         
         return { success: true, flowRunId: response.headers.get('x-ms-workflow-run-id') || undefined };
       } else {
@@ -67,9 +67,9 @@ export class PowerAutomateService {
       }
     } catch (error: any) {
       console.error(`❌ Failed to trigger New Application flow:`, error.message);
-      this.logWorkflow(applicationData.id, 'instant', 'New Application Notification', 'failed', applicationData, null, error.message);
+      await this.logWorkflow(applicationData.id, 'instant', 'New Application Notification', 'failed', applicationData, null, error.message);
       
-      db.prepare('UPDATE applications SET workflow_status = ? WHERE id = ?').run('failed', applicationData.id);
+      await run('UPDATE applications SET workflow_status = $1 WHERE id = $2', ['failed', applicationData.id]);
       
       return { success: false, error: error.message };
     }
@@ -87,11 +87,11 @@ export class PowerAutomateService {
     applicantName: string;
     position: string;
   }): Promise<TriggerResult> {
-    const flowUrl = this.getSettingValue('pa_resume_analysis_url') || process.env.PA_RESUME_ANALYSIS_FLOW_URL;
+    const flowUrl = (await this.getSettingValue('pa_resume_analysis_url')) || process.env.PA_RESUME_ANALYSIS_FLOW_URL;
 
     if (!flowUrl) {
       console.log('⚠️  Power Automate URL not configured for Resume Analysis flow. Skipping trigger.');
-      this.logWorkflow(data.applicationId, 'automated', 'Resume Analysis', 'failed', null, null, 'Flow URL not configured');
+      await this.logWorkflow(data.applicationId, 'automated', 'Resume Analysis', 'failed', null, null, 'Flow URL not configured');
       return { success: false, error: 'Flow URL not configured' };
     }
 
@@ -113,7 +113,7 @@ export class PowerAutomateService {
 
       if (response.ok) {
         console.log(`✅ Resume Analysis flow triggered successfully`);
-        this.logWorkflow(data.applicationId, 'automated', 'Resume Analysis', 'running', data);
+        await this.logWorkflow(data.applicationId, 'automated', 'Resume Analysis', 'running', data);
         return { success: true };
       } else {
         const errorText = await response.text();
@@ -121,7 +121,7 @@ export class PowerAutomateService {
       }
     } catch (error: any) {
       console.error(`❌ Failed to trigger Resume Analysis flow:`, error.message);
-      this.logWorkflow(data.applicationId, 'automated', 'Resume Analysis', 'failed', data, null, error.message);
+      await this.logWorkflow(data.applicationId, 'automated', 'Resume Analysis', 'failed', data, null, error.message);
       return { success: false, error: error.message };
     }
   }
@@ -129,7 +129,7 @@ export class PowerAutomateService {
   /**
    * Log a workflow execution to the database
    */
-  private static logWorkflow(
+  private static async logWorkflow(
     applicationId: string | null,
     flowType: 'instant' | 'automated' | 'scheduled',
     flowName: string,
@@ -137,13 +137,13 @@ export class PowerAutomateService {
     triggerData?: any,
     responseData?: any,
     errorMessage?: string
-  ): void {
+  ): Promise<void> {
     const { v4: uuidv4 } = require('uuid');
     
-    db.prepare(`
+    await run(`
       INSERT INTO workflow_logs (id, application_id, flow_type, flow_name, status, trigger_data, response_data, error_message, completed_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    `, [
       uuidv4(),
       applicationId,
       flowType,
@@ -153,35 +153,35 @@ export class PowerAutomateService {
       responseData ? (typeof responseData === 'string' ? responseData : JSON.stringify(responseData)) : null,
       errorMessage || null,
       status === 'completed' || status === 'failed' ? new Date().toISOString() : null
-    );
+    ]);
   }
 
   /**
    * Get a setting value from the database
    */
-  private static getSettingValue(key: string): string | null {
-    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined;
+  private static async getSettingValue(key: string): Promise<string | null> {
+    const row = await get<{ value: string }>('SELECT value FROM settings WHERE key = $1', [key]);
     return row?.value || null;
   }
 
   /**
    * Get all workflow logs (for the dashboard)
    */
-  static getWorkflowLogs(limit: number = 50): any[] {
-    return db.prepare(`
+  static async getWorkflowLogs(limit: number = 50): Promise<any[]> {
+    return all(`
       SELECT wl.*, a.full_name as applicant_name, a.position
       FROM workflow_logs wl
       LEFT JOIN applications a ON wl.application_id = a.id
       ORDER BY wl.created_at DESC
-      LIMIT ?
-    `).all(limit);
+      LIMIT $1
+    `, [limit]);
   }
 
   /**
    * Get workflow stats
    */
-  static getWorkflowStats(): any {
-    const stats = db.prepare(`
+  static async getWorkflowStats(): Promise<any[]> {
+    const stats = await all(`
       SELECT 
         flow_type,
         COUNT(*) as total,
@@ -190,7 +190,7 @@ export class PowerAutomateService {
         SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END) as running
       FROM workflow_logs
       GROUP BY flow_type
-    `).all();
+    `);
     return stats;
   }
 }

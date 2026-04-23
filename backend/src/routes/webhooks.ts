@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import db from '../database/db';
+import { all, get, run } from '../database/db';
 import { webhookAuth } from '../middleware/auth';
 import { PowerAutomateService } from '../services/powerAutomate';
 
@@ -10,7 +10,7 @@ const router = Router();
  * Called by Power Automate after AI Builder analyzes a resume.
  * Receives the analysis results and updates the application.
  */
-router.post('/resume-analyzed', webhookAuth, (req: Request, res: Response) => {
+router.post('/resume-analyzed', webhookAuth, async (req: Request, res: Response) => {
   try {
     const { applicationId, aiScore, skills, analysis, summary } = req.body;
 
@@ -19,31 +19,31 @@ router.post('/resume-analyzed', webhookAuth, (req: Request, res: Response) => {
       return;
     }
 
-    const application = db.prepare('SELECT * FROM applications WHERE id = ?').get(applicationId);
+    const application = await get('SELECT * FROM applications WHERE id = $1', [applicationId]);
     if (!application) {
       res.status(404).json({ error: 'Application not found' });
       return;
     }
 
     // Update with AI analysis results
-    db.prepare(`
+    await run(`
       UPDATE applications 
-      SET ai_analysis = ?, ai_score = ?, ai_skills = ?, updated_at = ?
-      WHERE id = ?
-    `).run(
+      SET ai_analysis = $1, ai_score = $2, ai_skills = $3, updated_at = $4
+      WHERE id = $5
+    `, [
       analysis || summary || null,
       aiScore || null,
       skills ? (Array.isArray(skills) ? JSON.stringify(skills) : skills) : null,
       new Date().toISOString(),
       applicationId
-    );
+    ]);
 
     // Update the workflow log
-    db.prepare(`
+    await run(`
       UPDATE workflow_logs 
-      SET status = 'completed', completed_at = ?, response_data = ?
-      WHERE application_id = ? AND flow_name = 'Resume Analysis' AND status = 'running'
-    `).run(new Date().toISOString(), JSON.stringify(req.body), applicationId);
+      SET status = 'completed', completed_at = $1, response_data = $2
+      WHERE application_id = $3 AND flow_name = 'Resume Analysis' AND status = 'running'
+    `, [new Date().toISOString(), JSON.stringify(req.body), applicationId]);
 
     console.log(`✅ Resume analysis received for application ${applicationId}: Score ${aiScore}`);
     res.json({ message: 'Resume analysis stored successfully' });
@@ -57,7 +57,7 @@ router.post('/resume-analyzed', webhookAuth, (req: Request, res: Response) => {
  * POST /api/webhooks/status-update
  * Called by Power Automate to update application status.
  */
-router.post('/status-update', webhookAuth, (req: Request, res: Response) => {
+router.post('/status-update', webhookAuth, async (req: Request, res: Response) => {
   try {
     const { applicationId, status, notes } = req.body;
     const validStatuses = ['pending', 'reviewing', 'interviewed', 'accepted', 'rejected'];
@@ -67,9 +67,9 @@ router.post('/status-update', webhookAuth, (req: Request, res: Response) => {
       return;
     }
 
-    db.prepare(`
-      UPDATE applications SET status = ?, notes = COALESCE(?, notes), updated_at = ? WHERE id = ?
-    `).run(status, notes || null, new Date().toISOString(), applicationId);
+    await run(`
+      UPDATE applications SET status = $1, notes = COALESCE($2, notes), updated_at = $3 WHERE id = $4
+    `, [status, notes || null, new Date().toISOString(), applicationId]);
 
     res.json({ message: 'Status updated successfully' });
   } catch (error: any) {
@@ -83,16 +83,16 @@ router.post('/status-update', webhookAuth, (req: Request, res: Response) => {
  * Called by the Scheduled Power Automate flow to get applications needing follow-up.
  * Returns all pending applications older than 3 days.
  */
-router.get('/pending-followups', webhookAuth, (_req: Request, res: Response) => {
+router.get('/pending-followups', webhookAuth, async (_req: Request, res: Response) => {
   try {
-    const pendingApps = db.prepare(`
+    const pendingApps = await all(`
       SELECT id, full_name, email, position, status, created_at, 
-             CAST((julianday('now') - julianday(created_at)) AS INTEGER) as days_pending
+             EXTRACT(DAY FROM (NOW() - created_at))::int as days_pending
       FROM applications 
       WHERE status IN ('pending', 'reviewing') 
-        AND created_at <= datetime('now', '-3 days')
+        AND created_at <= NOW() - INTERVAL '3 days'
       ORDER BY created_at ASC
-    `).all();
+    `);
 
     res.json({
       count: pendingApps.length,
@@ -108,10 +108,10 @@ router.get('/pending-followups', webhookAuth, (_req: Request, res: Response) => 
 /**
  * GET /api/webhooks/workflow-logs - Get workflow execution logs
  */
-router.get('/workflow-logs', (_req: Request, res: Response) => {
+router.get('/workflow-logs', async (_req: Request, res: Response) => {
   try {
-    const logs = PowerAutomateService.getWorkflowLogs();
-    const stats = PowerAutomateService.getWorkflowStats();
+    const logs = await PowerAutomateService.getWorkflowLogs();
+    const stats = await PowerAutomateService.getWorkflowStats();
     res.json({ logs, stats });
   } catch (error: any) {
     console.error('Error fetching workflow logs:', error);
