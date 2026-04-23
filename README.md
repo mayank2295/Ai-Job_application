@@ -13,11 +13,12 @@ Small full-stack project for tracking job applications and handling resume uploa
 ## Live
 
 - Frontend (Vercel): https://ai-job-application-eight.vercel.app/
-- Backend (Render): https://ai-job-application-f11u.onrender.com
-- Backend health: https://ai-job-application-f11u.onrender.com/api/health
+- Backend (Render): https://ai-job-application-1.onrender.com
+- Backend health: https://ai-job-application-1.onrender.com/api/health
 
-Note: the frontend’s production API base URL is currently hardcoded in `frontend/src/api/client.ts`.
-If you deploy your own backend, update that URL (or refactor it to use env vars).
+Note: set `VITE_API_BASE_URL` on Vercel to your backend API base (example:
+`https://ai-job-application-1.onrender.com/api`). If it’s not set, the frontend
+falls back to the default in `frontend/src/api/client.ts`.
 
 ## How resume uploads work
 

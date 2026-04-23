@@ -1,6 +1,9 @@
-const API_BASE = import.meta.env.DEV 
-  ? 'http://localhost:3001/api' 
-  : 'https://ai-job-application-1.onrender.com/api';
+const DEFAULT_DEV_API = 'http://localhost:3001/api';
+const DEFAULT_PROD_API = 'https://ai-job-application-1.onrender.com/api';
+
+const envApiBase = import.meta.env.VITE_API_BASE_URL as string | undefined;
+const API_BASE = (envApiBase?.trim() || (import.meta.env.DEV ? DEFAULT_DEV_API : DEFAULT_PROD_API))
+  .replace(/\/$/, '');
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${url}`, {
