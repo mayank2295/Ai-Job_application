@@ -1,4 +1,4 @@
-import { Pool, type PoolClient, type QueryResult } from 'pg';
+import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from 'pg';
 import path from 'path';
 import fs from 'fs';
 
@@ -34,14 +34,14 @@ export async function initializeDatabase(): Promise<void> {
   console.log('✅ Database initialized successfully');
 }
 
-export async function query<T = any>(
+export async function query<T extends QueryResultRow = any>(
   text: string,
   params: any[] = []
 ): Promise<QueryResult<T>> {
   return pool.query<T>(text, params);
 }
 
-export async function get<T = any>(
+export async function get<T extends QueryResultRow = any>(
   text: string,
   params: any[] = []
 ): Promise<T | undefined> {
@@ -49,7 +49,10 @@ export async function get<T = any>(
   return result.rows[0];
 }
 
-export async function all<T = any>(text: string, params: any[] = []): Promise<T[]> {
+export async function all<T extends QueryResultRow = any>(
+  text: string,
+  params: any[] = []
+): Promise<T[]> {
   const result = await pool.query<T>(text, params);
   return result.rows;
 }
