@@ -36,6 +36,13 @@ app.use('/api/resumes', resumeRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/settings', settingsRoutes);
 
+// Root message
+app.get('/', (_req, res) => {
+  res
+    .status(200)
+    .send('Job Application Automation API is running. See /api or /api/health.');
+});
+
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({
