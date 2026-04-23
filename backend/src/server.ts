@@ -74,19 +74,24 @@ app.get('/api', (_req, res) => {
 });
 
 // Initialize database and start server
-initializeDatabase();
-
-app.listen(PORT, () => {
-  console.log('');
-  console.log('🚀 ═══════════════════════════════════════════════════');
-  console.log(`   Job Application Automation API`);
-  console.log(`   Server running on http://localhost:${PORT}`);
-  console.log('   ───────────────────────────────────────────────────');
-  console.log(`   📋 API Docs:     http://localhost:${PORT}/api`);
-  console.log(`   💚 Health:       http://localhost:${PORT}/api/health`);
-  console.log(`   🔗 Webhook URL:  http://localhost:${PORT}/api/webhooks/`);
-  console.log('═══════════════════════════════════════════════════════');
-  console.log('');
-});
+initializeDatabase()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log('');
+      console.log('🚀 ═══════════════════════════════════════════════════');
+      console.log(`   Job Application Automation API`);
+      console.log(`   Server running on http://localhost:${PORT}`);
+      console.log('   ───────────────────────────────────────────────────');
+      console.log(`   📋 API Docs:     http://localhost:${PORT}/api`);
+      console.log(`   💚 Health:       http://localhost:${PORT}/api/health`);
+      console.log(`   🔗 Webhook URL:  http://localhost:${PORT}/api/webhooks/`);
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('');
+    });
+  })
+  .catch((error) => {
+    console.error('❌ Failed to initialize database:', error);
+    process.exit(1);
+  });
 
 export default app;

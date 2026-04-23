@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS applications (
     ai_skills TEXT,
     workflow_status TEXT DEFAULT 'none' CHECK(workflow_status IN ('none', 'triggered', 'completed', 'failed')),
     notes TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Workflow execution logs
@@ -29,8 +29,8 @@ CREATE TABLE IF NOT EXISTS workflow_logs (
     trigger_data TEXT,
     response_data TEXT,
     error_message TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    completed_at DATETIME,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMPTZ,
     FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
 );
 
@@ -42,8 +42,8 @@ CREATE TABLE IF NOT EXISTS follow_ups (
     message TEXT,
     scheduled_date DATE NOT NULL,
     is_sent INTEGER DEFAULT 0,
-    sent_at DATETIME,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    sent_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
 );
 
@@ -51,13 +51,19 @@ CREATE TABLE IF NOT EXISTS follow_ups (
 CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Insert default settings
-INSERT OR IGNORE INTO settings (key, value) VALUES ('notification_email', '');
-INSERT OR IGNORE INTO settings (key, value) VALUES ('teams_webhook_url', '');
-INSERT OR IGNORE INTO settings (key, value) VALUES ('pa_new_application_url', '');
-INSERT OR IGNORE INTO settings (key, value) VALUES ('pa_resume_analysis_url', '');
-INSERT OR IGNORE INTO settings (key, value) VALUES ('pa_scheduled_flow_enabled', 'false');
-INSERT OR IGNORE INTO settings (key, value) VALUES ('auto_trigger_workflows', 'true');
+INSERT INTO settings (key, value) VALUES ('notification_email', '')
+ON CONFLICT (key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('teams_webhook_url', '')
+ON CONFLICT (key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('pa_new_application_url', '')
+ON CONFLICT (key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('pa_resume_analysis_url', '')
+ON CONFLICT (key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('pa_scheduled_flow_enabled', 'false')
+ON CONFLICT (key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('auto_trigger_workflows', 'true')
+ON CONFLICT (key) DO NOTHING;

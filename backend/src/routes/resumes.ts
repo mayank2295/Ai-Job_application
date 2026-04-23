@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import db from '../database/db';
+import { get, run } from '../database/db';
 import { PowerAutomateService } from '../services/powerAutomate';
 import { AzureBlobStorageService } from '../services/azureBlobStorage';
 
@@ -48,7 +48,7 @@ router.post('/upload/:applicationId', upload.single('resume'), async (req: Reque
     }
 
     // Check application exists
-    const application = db.prepare('SELECT * FROM applications WHERE id = ?').get(applicationId) as any;
+    const application = await get('SELECT * FROM applications WHERE id = $1', [applicationId]) as any;
     if (!application) {
       res.status(404).json({ error: 'Application not found' });
       return;
@@ -63,10 +63,10 @@ router.post('/upload/:applicationId', upload.single('resume'), async (req: Reque
 
     try {
       // Store stable blob URL in DB; signed URL is generated on demand.
-      db.prepare(`
-        UPDATE applications SET resume_filename = ?, resume_path = ?, updated_at = ?
-        WHERE id = ?
-      `).run(file.originalname, uploadResult.blobUrl, new Date().toISOString(), applicationId);
+      await run(`
+        UPDATE applications SET resume_filename = $1, resume_path = $2, updated_at = $3
+        WHERE id = $4
+      `, [file.originalname, uploadResult.blobUrl, new Date().toISOString(), applicationId]);
     } catch (dbError) {
       await AzureBlobStorageService.deleteBlob(uploadResult.blobName).catch((cleanupError) => {
         console.error('Failed to cleanup blob after DB error:', cleanupError);
@@ -96,9 +96,9 @@ router.post('/upload/:applicationId', upload.single('resume'), async (req: Reque
 });
 
 // GET /api/resumes/:applicationId/download - Download resume
-router.get('/:applicationId/download', (req: Request, res: Response) => {
+router.get('/:applicationId/download', async (req: Request, res: Response) => {
   try {
-    const application = db.prepare('SELECT * FROM applications WHERE id = ?').get(req.params.applicationId) as any;
+    const application = await get('SELECT * FROM applications WHERE id = $1', [req.params.applicationId]) as any;
 
     if (!application || !application.resume_path) {
       res.status(404).json({ error: 'Resume not found' });

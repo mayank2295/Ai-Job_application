@@ -1,23 +1,26 @@
-import Database from 'better-sqlite3';
-import type { Database as DatabaseType } from 'better-sqlite3';
+import { Pool, type PoolClient, type QueryResult } from 'pg';
 import path from 'path';
 import fs from 'fs';
 
-const DB_PATH = process.env.DB_PATH || './data/applications.db';
+const connectionString = process.env.DATABASE_URL;
 
-// Ensure the data directory exists
-const dataDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+if (!connectionString) {
+  throw new Error('DATABASE_URL is not configured. Set it in your environment.');
 }
 
-const db: DatabaseType = new Database(DB_PATH);
+const sslRequired =
+  process.env.DATABASE_SSL === 'true' || /sslmode=require/i.test(connectionString);
 
-// Enable WAL mode for better performance
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+const pool = new Pool({
+  connectionString,
+  ssl: sslRequired ? { rejectUnauthorized: false } : undefined,
+});
 
-export function initializeDatabase(): void {
+pool.on('error', (error) => {
+  console.error('Postgres pool error:', error);
+});
+
+export async function initializeDatabase(): Promise<void> {
   const distSchemaPath = path.join(__dirname, 'schema.sql');
   const srcSchemaPath = path.resolve(__dirname, '..', '..', 'src', 'database', 'schema.sql');
   const schemaPath = fs.existsSync(distSchemaPath) ? distSchemaPath : srcSchemaPath;
@@ -27,8 +30,47 @@ export function initializeDatabase(): void {
   }
 
   const schema = fs.readFileSync(schemaPath, 'utf-8');
-  db.exec(schema);
+  await pool.query(schema);
   console.log('✅ Database initialized successfully');
 }
 
-export default db;
+export async function query<T = any>(
+  text: string,
+  params: any[] = []
+): Promise<QueryResult<T>> {
+  return pool.query<T>(text, params);
+}
+
+export async function get<T = any>(
+  text: string,
+  params: any[] = []
+): Promise<T | undefined> {
+  const result = await pool.query<T>(text, params);
+  return result.rows[0];
+}
+
+export async function all<T = any>(text: string, params: any[] = []): Promise<T[]> {
+  const result = await pool.query<T>(text, params);
+  return result.rows;
+}
+
+export async function run(text: string, params: any[] = []): Promise<void> {
+  await pool.query(text, params);
+}
+
+export async function transaction<T>(
+  fn: (client: PoolClient) => Promise<T>
+): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
