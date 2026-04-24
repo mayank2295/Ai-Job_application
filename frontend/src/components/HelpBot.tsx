@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { HelpCircle, X, Send } from 'lucide-react';
+// @ts-ignore
 import { callLLM, renderMarkdown } from '../lib/careerbot-api';
 
 const SYSTEM_PROMPT = `You are a friendly help assistant for the JobFlow AI platform. You help users navigate the app, explain features, and answer questions about:
@@ -25,8 +26,8 @@ export default function HelpBot() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showChips, setShowChips] = useState(true);
-  const bottomRef = useRef(null);
-  const inputRef = useRef(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -36,7 +37,7 @@ export default function HelpBot() {
     if (open) setTimeout(() => inputRef.current?.focus(), 200);
   }, [open]);
 
-  const sendMessage = async (text) => {
+  const sendMessage = async (text?: string) => {
     const userText = (text || input).trim();
     if (!userText || loading) return;
 
@@ -56,7 +57,7 @@ export default function HelpBot() {
       const data = await callLLM(history);
       const reply = data.choices[0].message.content || '';
       setMessages(p => [...p, { role: 'assistant', content: reply, ts: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-    } catch (e) {
+    } catch (e: any) {
       setMessages(p => [...p, { role: 'assistant', content: `⚠️ Error: ${e.message}`, ts }]);
     } finally {
       setLoading(false);
