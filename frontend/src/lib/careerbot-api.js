@@ -29,7 +29,12 @@ export async function runAgent(messages, onStatus, onCourses) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messages }),
   });
-  if (!r.ok) throw new Error(`Backend Error ${r.status}`);
+  if (!r.ok) {
+    const text = await r.text();
+    let msg = `Backend Error ${r.status}`;
+    try { const d = JSON.parse(text); if (d.error) msg = d.error; } catch(e){}
+    throw new Error(msg);
+  }
   const data = await r.json();
   
   if (data.events && onStatus) {
@@ -50,7 +55,12 @@ export async function analyzeATS(resumeText, jobDesc = "") {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ resumeText, jobDesc }),
   });
-  if (!r.ok) throw new Error(`Backend Error ${r.status}`);
+  if (!r.ok) {
+    const text = await r.text();
+    let msg = `Backend Error ${r.status}`;
+    try { const d = JSON.parse(text); if (d.error) msg = d.error; } catch(e){}
+    throw new Error(msg);
+  }
   return r.json();
 }
 
@@ -60,7 +70,12 @@ export async function findCoursesOnline(topic) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ topic }),
   });
-  if (!r.ok) throw new Error(`Backend Error ${r.status}`);
+  if (!r.ok) {
+    const text = await r.text();
+    let msg = `Backend Error ${r.status}`;
+    try { const d = JSON.parse(text); if (d.error) msg = d.error; } catch(e){}
+    throw new Error(msg);
+  }
   const data = await r.json();
   return data.courses || [];
 }
@@ -71,7 +86,12 @@ export async function callLLM(history) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ history }),
   });
-  if (!r.ok) throw new Error(`Backend Error ${r.status}`);
+  if (!r.ok) {
+    const text = await r.text();
+    let msg = `Backend Error ${r.status}`;
+    try { const d = JSON.parse(text); if (d.error) msg = d.error; } catch(e){}
+    throw new Error(msg);
+  }
   const data = await r.json();
   // HelpBot expects { choices: [{ message: { content: ... } }] }
   return { choices: [{ message: { content: data.reply } }] };
