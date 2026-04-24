@@ -108,7 +108,7 @@ export default function ApplicationsPage() {
             </thead>
             <tbody>
               {applications.map((app) => (
-                <tr key={app.id} onClick={() => navigate(`/applications/${app.id}`)}>
+                <tr key={app.id} onClick={() => navigate(`/admin/applications/${app.id}`)}>
                   <td>
                     <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 13.5 }}>
                       {app.full_name}

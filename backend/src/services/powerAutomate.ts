@@ -1,4 +1,5 @@
 import { all, get, run } from '../database/db';
+import { v4 as uuidv4 } from 'uuid';
 
 interface TriggerResult {
   success: boolean;
@@ -138,8 +139,6 @@ export class PowerAutomateService {
     responseData?: any,
     errorMessage?: string
   ): Promise<void> {
-    const { v4: uuidv4 } = require('uuid');
-    
     await run(`
       INSERT INTO workflow_logs (id, application_id, flow_type, flow_name, status, trigger_data, response_data, error_message, completed_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)

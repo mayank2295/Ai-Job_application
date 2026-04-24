@@ -35,6 +35,74 @@ export async function initializeDatabase(): Promise<void> {
 
   const schema = fs.readFileSync(schemaPath, 'utf-8');
   await pool.query(schema);
+  
+  // Add missing columns if they don't exist
+  try {
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='applications' AND column_name='job_id') THEN
+          ALTER TABLE applications ADD COLUMN job_id TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='applications' AND column_name='user_id') THEN
+          ALTER TABLE applications ADD COLUMN user_id TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='applications' AND column_name='phone') THEN
+          ALTER TABLE applications ADD COLUMN phone TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='applications' AND column_name='experience_years') THEN
+          ALTER TABLE applications ADD COLUMN experience_years INTEGER DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='applications' AND column_name='cover_letter') THEN
+          ALTER TABLE applications ADD COLUMN cover_letter TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='applications' AND column_name='ai_score') THEN
+          ALTER TABLE applications ADD COLUMN ai_score REAL;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='applications' AND column_name='resume_filename') THEN
+          ALTER TABLE applications ADD COLUMN resume_filename TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='applications' AND column_name='resume_path') THEN
+          ALTER TABLE applications ADD COLUMN resume_path TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='applications' AND column_name='ai_skills') THEN
+          ALTER TABLE applications ADD COLUMN ai_skills TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='applications' AND column_name='ai_missing_skills') THEN
+          ALTER TABLE applications ADD COLUMN ai_missing_skills TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='applications' AND column_name='ai_analysis') THEN
+          ALTER TABLE applications ADD COLUMN ai_analysis TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='applications' AND column_name='workflow_status') THEN
+          ALTER TABLE applications ADD COLUMN workflow_status TEXT DEFAULT 'none' CHECK(workflow_status IN ('none', 'triggered', 'completed', 'failed'));
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='applications' AND column_name='resume_url') THEN
+          ALTER TABLE applications ADD COLUMN resume_url TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='applications' AND column_name='notes') THEN
+          ALTER TABLE applications ADD COLUMN notes TEXT;
+        END IF;
+      END $$;
+    `);
+
+    // Create chat_sessions table if it doesn't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS chat_sessions (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          bot_type TEXT NOT NULL CHECK(bot_type IN ('careerbot', 'helpbot')),
+          title TEXT,
+          messages TEXT NOT NULL DEFAULT '[]',
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+    `);
+  } catch (err) {
+    console.error('Error running migrations:', err);
+  }
+  
   console.log('✅ Database initialized successfully');
 }
 

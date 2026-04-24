@@ -1,9 +1,27 @@
 import { Router, Request, Response } from 'express';
 import { all, get, query, run } from '../database/db';
 import { v4 as uuidv4 } from 'uuid';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { PowerAutomateService } from '../services/powerAutomate';
+import { callLLM } from './careerbot';
 
 const router = Router();
+
+// multer for resume upload (memory storage, max 10MB)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['.pdf', '.doc', '.docx', '.txt'];
+    if (allowed.includes(path.extname(file.originalname).toLowerCase())) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF, DOC, DOCX, and TXT files are allowed'));
+    }
+  },
+});
 
 // GET /api/applications - List all applications
 router.get('/', async (req: Request, res: Response) => {
@@ -114,10 +132,11 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/applications - Create new application
-router.post('/', async (req: Request, res: Response) => {
+// POST /api/applications — Create new application (supports multipart with resume)
+router.post('/', upload.single('resume'), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { full_name, email, phone, position, experience_years, cover_letter } = req.body;
+    const { full_name, email, phone, position, experience_years, cover_letter,
+            job_id, user_id, resume_text, job_description } = req.body;
 
     if (!full_name || !email || !position) {
       res.status(400).json({ error: 'Full name, email, and position are required' });
@@ -127,45 +146,68 @@ router.post('/', async (req: Request, res: Response) => {
     const id = uuidv4();
     const now = new Date().toISOString();
 
+    // Handle resume file
+    let resumeFilename: string | null = null;
+    let resumePath: string | null = null;
+    if (req.file) {
+      resumeFilename = req.file.originalname;
+      const safeFilename = `${id}-${req.file.originalname}`;
+      resumePath = `/uploads/${safeFilename}`;
+      const uploadDir = path.join(process.cwd(), 'uploads');
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+      fs.writeFileSync(path.join(uploadDir, safeFilename), req.file.buffer);
+    }
+
+    // AI Analysis (async, don't block)
+    let aiScore: number | null = null;
+    let aiSkills = '';
+    let aiMissingSkills = '';
+    let aiAnalysis = '';
+    if (resume_text && job_description) {
+      try {
+        const prompt = `You are an expert ATS resume analyst.\nJob Description:\n${String(job_description).slice(0, 800)}\n\nResume:\n${String(resume_text).slice(0, 3500)}\n\nReturn ONLY raw JSON: {"overall_score":<0-100>,"top_skills":[],"missing_keywords":[],"summary":"<2 sentences>"}`;
+        const data: any = await callLLM([
+          { role: 'system', content: 'You are an ATS expert. Respond ONLY with valid JSON.' },
+          { role: 'user', content: prompt },
+        ]);
+        const raw = data.choices[0].message.content.replace(/```json|```/g, '').trim();
+        const parsed = JSON.parse(raw);
+        aiScore = parsed.overall_score || null;
+        aiSkills = JSON.stringify(parsed.top_skills || []);
+        aiMissingSkills = JSON.stringify(parsed.missing_keywords || []);
+        aiAnalysis = parsed.summary || '';
+      } catch(e) { console.error('AI analysis error:', e); }
+    }
+
     const insertResult = await query(`
-      INSERT INTO applications (id, full_name, email, phone, position, experience_years, cover_letter, created_at, updated_at, workflow_status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO applications
+        (id, job_id, user_id, full_name, email, phone, position, experience_years,
+         cover_letter, resume_filename, resume_path, ai_score, ai_skills, ai_missing_skills,
+         ai_analysis, workflow_status, created_at, updated_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       RETURNING *
     `, [
-      id,
-      full_name,
-      email,
-      phone || null,
-      position,
-      experience_years || 0,
-      cover_letter || null,
-      now,
-      now,
-      'triggered'
+      id, job_id || null, user_id || null,
+      full_name, email, phone || null, position,
+      experience_years || 0, cover_letter || null,
+      resumeFilename, resumePath,
+      aiScore, aiSkills, aiMissingSkills, aiAnalysis,
+      'triggered', now, now
     ]);
 
     const application = insertResult.rows[0];
 
-    // Trigger Power Automate flow (async, don't block the response)
-    const autoTrigger = await get<{ value: string }>(
-      "SELECT value FROM settings WHERE key = 'auto_trigger_workflows'"
-    );
-    
+    // Trigger notification webhook
+    const autoTrigger = await get<{ value: string }>("SELECT value FROM settings WHERE key = 'auto_trigger_workflows'");
     if (autoTrigger?.value !== 'false') {
-      PowerAutomateService.triggerNewApplicationFlow({
-        id,
-        full_name,
-        email,
-        position,
-        phone,
-        created_at: now
-      }).catch(err => console.error('Background flow trigger error:', err));
+      PowerAutomateService.triggerNewApplicationFlow({ id, full_name, email, position, phone, created_at: now })
+        .catch(err => console.error('Background flow trigger error:', err));
     }
 
     res.status(201).json({ application, message: 'Application submitted successfully!' });
   } catch (error: any) {
     console.error('Error creating application:', error);
-    res.status(500).json({ error: 'Failed to create application' });
+    res.status(500).json({ error: error?.message || 'Failed to create application', stack: error?.stack });
   }
 });
 

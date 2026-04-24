@@ -102,10 +102,6 @@ export default function DashboardPage() {
           <h1>Dashboard</h1>
           <p>Overview of your job application automation system</p>
         </div>
-        <button className="btn btn-primary" onClick={() => navigate('/apply')}>
-          <PlusIcon />
-          New Application
-        </button>
       </div>
 
       {/* Stats Grid */}
@@ -133,7 +129,7 @@ export default function DashboardPage() {
         <div className="table-container">
           <div className="table-header">
             <h3 className="table-title">Recent Applications</h3>
-            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/applications')}>
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/admin/applications')}>
               View All <ArrowRight size={14} />
             </button>
           </div>
@@ -141,10 +137,7 @@ export default function DashboardPage() {
             <div className="empty-state">
               <div className="empty-state-icon"><FileText /></div>
               <div className="empty-state-title">No applications yet</div>
-              <div className="empty-state-desc">Submit your first job application to get started</div>
-              <button className="btn btn-primary" onClick={() => navigate('/apply')}>
-                <PlusIcon /> Apply Now
-              </button>
+              <div className="empty-state-desc">Wait for candidates to submit applications</div>
             </div>
           ) : (
             <table>
@@ -158,7 +151,7 @@ export default function DashboardPage() {
               </thead>
               <tbody>
                 {recentApps.map((app) => (
-                  <tr key={app.id} onClick={() => navigate(`/applications/${app.id}`)}>
+                  <tr key={app.id} onClick={() => navigate(`/admin/applications/${app.id}`)}>
                     <td>
                       <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{app.full_name}</div>
                       <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{app.email}</div>
@@ -208,7 +201,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <button className="btn btn-secondary btn-sm" style={{ width: '100%', justifyContent: 'center' }} onClick={() => navigate('/workflows')}>
+            <button className="btn btn-secondary btn-sm" style={{ width: '100%', justifyContent: 'center' }} onClick={() => navigate('/admin/workflows')}>
               <Workflow size={14} /> View Workflows
             </button>
           </div>

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { HelpCircle, X, Send } from 'lucide-react';
 // @ts-ignore
-import { callLLM, renderMarkdown } from '../lib/careerbot-api';
+import { callLLM, renderMarkdown, loadSessions, saveSession, createSession } from '../lib/careerbot-api';
+import { useAuth } from '../context/AuthContext';
 
 const SYSTEM_PROMPT = `You are a friendly help assistant for the JobFlow AI platform. You help users navigate the app, explain features, and answer questions about:
 - Career Bot: AI chat, ATS resume analysis, course finder
@@ -19,15 +20,36 @@ const QUICK_CHIPS = [
 ];
 
 export default function HelpBot() {
+  const { user } = useAuth();
+  const userId = user?.id || user?.firebaseUser?.uid || 'anonymous';
+
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: '👋 Hi! I\'m your help assistant. Ask me anything about the platform!', ts: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-  ]);
+  const [session, setSession] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showChips, setShowChips] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    async function init() {
+      const s = await loadSessions(userId, 'helpbot');
+      if (s.length > 0) {
+        setSession(s[0]);
+        setMessages(s[0].messages);
+        if (s[0].messages.length > 1) setShowChips(false);
+      } else {
+        const newSess = createSession('Help Assistant Chat');
+        const initialMsg = { role: 'assistant', content: '👋 Hi! I\'m your help assistant. Ask me anything about the platform!', ts: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+        newSess.messages = [initialMsg];
+        setSession(newSess);
+        setMessages([initialMsg]);
+        await saveSession(userId, newSess, 'helpbot');
+      }
+    }
+    init();
+  }, [userId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -37,6 +59,15 @@ export default function HelpBot() {
     if (open) setTimeout(() => inputRef.current?.focus(), 200);
   }, [open]);
 
+  const updateSessionMessages = async (newMsgs: any[]) => {
+    setMessages(newMsgs);
+    if (session) {
+      const updated = { ...session, messages: newMsgs, updatedAt: new Date().toISOString() };
+      setSession(updated);
+      await saveSession(userId, updated, 'helpbot');
+    }
+  };
+
   const sendMessage = async (text?: string) => {
     const userText = (text || input).trim();
     if (!userText || loading) return;
@@ -44,7 +75,7 @@ export default function HelpBot() {
     const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const userMsg = { role: 'user', content: userText, ts };
     const next = [...messages, userMsg];
-    setMessages(next);
+    await updateSessionMessages(next);
     setInput('');
     setLoading(true);
     setShowChips(false);
@@ -56,9 +87,9 @@ export default function HelpBot() {
       ];
       const data = await callLLM(history);
       const reply = data.choices[0].message.content || '';
-      setMessages(p => [...p, { role: 'assistant', content: reply, ts: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+      await updateSessionMessages([...next, { role: 'assistant', content: reply, ts: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
     } catch (e: any) {
-      setMessages(p => [...p, { role: 'assistant', content: `⚠️ Error: ${e.message}`, ts }]);
+      await updateSessionMessages([...next, { role: 'assistant', content: `⚠️ Error: ${e.message}`, ts }]);
     } finally {
       setLoading(false);
     }

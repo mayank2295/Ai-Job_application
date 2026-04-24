@@ -60,8 +60,8 @@ export default function ApplicationDetailPage() {
   const handleDelete = async () => {
     if (!id || !confirm('Are you sure you want to delete this application?')) return;
     try {
-      await api.deleteApplication(id);
-      navigate('/applications');
+      await api.deleteApplication(id!);
+      navigate('/admin/applications');
     } catch (err: any) {
       showToast('error', err.message);
     }
@@ -88,7 +88,7 @@ export default function ApplicationDetailPage() {
       <div className="page-container">
         <div className="empty-state">
           <div className="empty-state-title">Application not found</div>
-          <button className="btn btn-primary" onClick={() => navigate('/applications')}>
+          <button className="btn btn-primary" onClick={() => navigate('/admin/applications')}>
             <ArrowLeft size={16} /> Back to Applications
           </button>
         </div>
@@ -109,7 +109,7 @@ export default function ApplicationDetailPage() {
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <button className="btn btn-ghost" onClick={() => navigate('/applications')}>
+        <button className="btn btn-ghost" onClick={() => navigate('/admin/applications')}>
           <ArrowLeft size={18} />
         </button>
         <div style={{ flex: 1 }}>

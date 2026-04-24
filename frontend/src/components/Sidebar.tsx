@@ -1,20 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  FileText,
-  PlusCircle,
-  Workflow,
-  Settings,
-  Zap,
-  Activity,
-  Home,
-  LogOut,
-  Bot,
+  LayoutDashboard, FileText, Briefcase, Users, Bot,
+  Settings, LogOut, Zap, Search, User, BookOpen, Globe, CheckSquare
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Sidebar() {
-  const { logout } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -22,95 +14,68 @@ export default function Sidebar() {
     navigate('/');
   };
 
+  const link = (to: string, Icon: any, label: string) => (
+    <NavLink to={to} className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+      <Icon size={18} />
+      <span>{label}</span>
+    </NavLink>
+  );
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <div className="sidebar-logo">
-          <Zap size={20} />
-        </div>
+        <div className="sidebar-logo"><Zap size={20} /></div>
         <div>
           <div className="sidebar-title">JobFlow AI</div>
-          <div className="sidebar-subtitle">Automation System</div>
+          <div className="sidebar-subtitle">{isAdmin ? 'Admin Portal' : 'Career Portal'}</div>
         </div>
       </div>
 
       <nav className="sidebar-nav">
-        <span className="sidebar-section-title">Main</span>
-
-        <NavLink
-          to="/"
-          className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-          end
-        >
-          <Home />
-          <span>Home</span>
-        </NavLink>
-
-        <NavLink
-          to="/dashboard"
-          className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-          end
-        >
-          <LayoutDashboard />
-          <span>Dashboard</span>
-        </NavLink>
-
-        <NavLink
-          to="/apply"
-          className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-        >
-          <PlusCircle />
-          <span>New Application</span>
-        </NavLink>
-
-        <NavLink
-          to="/applications"
-          className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-        >
-          <FileText />
-          <span>All Applications</span>
-        </NavLink>
-
-        <span className="sidebar-section-title">Automation</span>
-
-        <NavLink
-          to="/workflows"
-          className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-        >
-          <Workflow />
-          <span>Workflows</span>
-        </NavLink>
-
-        <NavLink
-          to="/activity"
-          className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-        >
-          <Activity />
-          <span>Activity Log</span>
-        </NavLink>
-
-        <NavLink
-          to="/career-bot"
-          className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-        >
-          <Bot />
-          <span>Career Bot</span>
-        </NavLink>
-
-        <span className="sidebar-section-title">System</span>
-
-        <NavLink
-          to="/settings"
-          className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-        >
-          <Settings />
-          <span>Settings</span>
-        </NavLink>
+        {isAdmin ? (
+          <>
+            <span className="sidebar-section-title">Management</span>
+            {link('/admin/dashboard', LayoutDashboard, 'Dashboard')}
+            {link('/admin/applications', FileText, 'All Applications')}
+            {link('/admin/jobs', Briefcase, 'Manage Jobs')}
+            {link('/admin/users', Users, 'All Users')}
+            <span className="sidebar-section-title">Tools</span>
+            {link('/admin/career-bot', Bot, 'Career Bot')}
+            {link('/admin/settings', Settings, 'Settings')}
+          </>
+        ) : (
+          <>
+            <span className="sidebar-section-title">Explore</span>
+            {link('/jobs', Briefcase, 'Job Board')}
+            <span className="sidebar-section-title">My Space</span>
+            {link('/my-applications', FileText, 'My Applications')}
+            {link('/profile', User, 'My Profile')}
+            <span className="sidebar-section-title">AI Tools</span>
+            {link('/career-bot', Bot, 'AI Chat')}
+            {link('/ats-resume', CheckSquare, 'ATS Analyzer')}
+            {link('/courses', BookOpen, 'Find Courses')}
+            {link('/web-search', Globe, 'Web Search')}
+          </>
+        )}
       </nav>
 
       <div className="sidebar-footer">
+        {user && (
+          <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            {user.photoURL
+              ? <img src={user.photoURL} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+              : <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--gradient-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 13 }}>
+                  {(user.name || user.email)[0].toUpperCase()}
+                </div>
+            }
+            <div style={{ overflow: 'hidden' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name || 'User'}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{isAdmin ? '👑 Admin' : 'Candidate'}</div>
+            </div>
+          </div>
+        )}
         <button className="sidebar-link sidebar-logout-btn" onClick={handleLogout}>
-          <LogOut />
+          <LogOut size={18} />
           <span>Logout</span>
         </button>
       </div>

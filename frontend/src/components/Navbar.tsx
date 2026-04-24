@@ -4,13 +4,25 @@ import ThemeToggle from './ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 
 const pageTitles: Record<string, string> = {
-  '/': 'Dashboard',
-  '/apply': 'Submit Application',
+  '/admin/dashboard': 'Dashboard',
+  '/admin/applications': 'All Applications',
+  '/admin/jobs': 'Manage Jobs',
+  '/admin/users': 'All Users',
+  '/admin/workflows': 'Workflows',
+  '/admin/activity': 'Activity Log',
+  '/admin/career-bot': 'CareerAI Assistant',
+  '/admin/settings': 'Settings',
+  '/jobs': 'Job Board',
+  '/my-applications': 'My Applications',
+  '/profile': 'My Profile',
+  '/career-bot': 'CareerAI Assistant',
+  '/courses': 'Find Courses',
+  // legacy
+  '/dashboard': 'Dashboard',
   '/applications': 'All Applications',
-  '/workflows': 'Power Automate Workflows',
+  '/workflows': 'Workflows',
   '/activity': 'Activity Log',
   '/settings': 'Settings',
-  '/career-bot': 'CareerAI Assistant',
 };
 
 export default function Navbar() {

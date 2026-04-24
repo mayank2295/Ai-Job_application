@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { extractPdfText, runAgent, analyzeATS, findCoursesOnline, callLLM, loadSessions, saveSessions, createSession, renderMarkdown } from "../lib/careerbot-api";
+import { extractPdfText, runAgent, analyzeATS, findCoursesOnline, callLLM, loadSessions, saveSession, deleteSession, createSession, renderMarkdown } from "../lib/careerbot-api";
+import WebSearchTab from "./WebSearchTab";
+import { useAuth } from "../context/AuthContext";
 
 function ScoreRing({ score, size = 80, color = "#6366f1", label }) {
   const r = (size - 10) / 2, circ = 2 * Math.PI * r, offset = circ - (score / 100) * circ;
@@ -15,18 +17,67 @@ function ScoreRing({ score, size = 80, color = "#6366f1", label }) {
   );
 }
 
-export default function CareerBot() {
-  const SYSTEM = `You are an expert AI career assistant. You can: answer questions, search the web, analyze resumes for ATS scores, find Udemy/Coursera courses, give career advice. Use web_search for current facts and find_courses when asked about learning. Be concise, warm, actionable. Format responses with markdown.`;
+export default function CareerBot({ initialTab = "chat" }) {
+const SYSTEM = `You are a highly intelligent AI assistant and expert career coach.
 
-  const [tab, setTab] = useState("chat");
-  const [sessions, setSessions] = useState(() => { const s = loadSessions(); return s.length ? s : [createSession("New Chat")]; });
-  const [activeSessionId, setActiveSessionId] = useState(() => { const s = loadSessions(); return s.length ? s[0].id : null; });
+Your capabilities:
+- Deep expertise in software engineering, AI/ML, data science, product management, design, and career guidance
+- Real-time web search for latest information (use web_search tool)
+- Find online courses on Udemy/Coursera (use find_courses tool)
+- Search and rank professionals/experts (use scrape_profiles tool)
+- Resume ATS analysis and optimization
+- Interview prep, salary negotiation, career path advice
+
+Response strategy:
+1. Understand user intent deeply — ask a clarifying question if the request is ambiguous
+2. Give practical, real-world solutions — not theory
+3. Provide step-by-step guidance with examples
+4. For coding: write clean, production-ready code with comments and suggest optimizations
+5. For learning queries: start simple, go deeper, then summarize at the end
+6. For product/architecture: think like a senior engineer and suggest scalability improvements
+7. When voice mode is active: keep responses shorter and conversational
+
+Rules:
+- ALWAYS use the web_search tool when the user asks to "search online", asks for current events, latest salaries, job trends, or real-time data.
+- Use find_courses when the user wants to learn a skill
+- Use scrape_profiles when user asks for people, experts, or LinkedIn profiles
+- Format responses with markdown: bold key points, use bullet lists, use code blocks for code
+- Be clear, confident, and practical — never robotic
+- If unsure, say so clearly and suggest how the user can verify`;
+
+
+  const { user } = useAuth();
+  const userId = user?.id || user?.firebaseUser?.uid || 'anonymous';
+
+  const [tab, setTab] = useState(initialTab);
+  const [sessions, setSessions] = useState([]);
+  const [activeSessionId, setActiveSessionId] = useState(null);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
+
+  useEffect(() => {
+    async function init() {
+      const s = await loadSessions(userId, 'careerbot');
+      if (s.length) {
+        setSessions(s);
+        setActiveSessionId(s[0].id);
+      } else {
+        const initial = createSession("New Chat");
+        setSessions([initial]);
+        setActiveSessionId(initial.id);
+        await saveSession(userId, initial, 'careerbot');
+      }
+      setSessionsLoaded(true);
+    }
+    init();
+  }, [userId]);
+
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [editIdx, setEditIdx] = useState(-1);
   const [editText, setEditText] = useState("");
   const [resume, setResume] = useState(null);
+  const [chatDocuments, setChatDocuments] = useState([]);
   const [atsData, setAtsData] = useState(null);
   const [atsLoading, setAtsLoading] = useState(false);
   const [jobDesc, setJobDesc] = useState("");
@@ -43,16 +94,22 @@ export default function CareerBot() {
   const fileRef = useRef(null);
   const jdFileRef = useRef(null);
 
-  const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
-  const messages = activeSession?.messages || [];
+  const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0] || { messages: [] };
+  const messages = activeSession.messages || [];
 
   const updateMessages = useCallback((newMsgs) => {
     setSessions(prev => {
-      const next = prev.map(s => s.id === activeSessionId ? { ...s, messages: typeof newMsgs === 'function' ? newMsgs(s.messages) : newMsgs, updatedAt: new Date().toISOString() } : s);
-      saveSessions(next);
+      const next = prev.map(s => {
+        if (s.id === activeSessionId) {
+          const updatedSession = { ...s, messages: typeof newMsgs === 'function' ? newMsgs(s.messages) : newMsgs, updatedAt: new Date().toISOString() };
+          saveSession(userId, updatedSession, 'careerbot');
+          return updatedSession;
+        }
+        return s;
+      });
       return next;
     });
-  }, [activeSessionId]);
+  }, [activeSessionId, userId]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
   useEffect(() => { const el = textareaRef.current; if(!el) return; el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight,130)+"px"; }, [input]);
@@ -67,11 +124,32 @@ export default function CareerBot() {
     recognRef.current = rec;
   }, []);
 
-  const toggleListen = () => { if(!recognRef.current) return alert("Speech recognition not supported."); if(listening) { recognRef.current.stop(); setListening(false); } else { recognRef.current.start(); setListening(true); } };
+  const toggleListen = () => { if(!recognRef.current) return alert("Speech recognition not supported in this browser."); if(listening) { recognRef.current.stop(); setListening(false); } else { recognRef.current.start(); setListening(true); } };
+
+  // Text-to-Speech: reads AI reply aloud when voice mode is on
+  const speak = (text) => {
+    if(!voiceOn || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const clean = text.replace(/[#*`>_~[\]()]/g, '').replace(/\n+/g, ' ').slice(0, 600);
+    const utt = new SpeechSynthesisUtterance(clean);
+    utt.rate = 1.05; utt.pitch = 1; utt.lang = 'en-US';
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v => v.name.includes('Google') || v.lang === 'en-US');
+    if(preferred) utt.voice = preferred;
+    window.speechSynthesis.speak(utt);
+  };
 
   const handleFile = async (file) => {
     if(!file) return;
-    try { let text = file.type === "application/pdf" ? await extractPdfText(file) : await file.text(); setResume({ name: file.name, text }); setAtsData(null); setTab("resume"); } catch(e) { alert("Could not read file: " + e.message); }
+    try { 
+      let text = file.type === "application/pdf" ? await extractPdfText(file) : await file.text(); 
+      if (tab === "chat") {
+        setChatDocuments(prev => [...prev, { name: file.name, text }]);
+      } else {
+        setResume({ name: file.name, text }); 
+        setAtsData(null); 
+      }
+    } catch(e) { alert("Could not read file: " + e.message); }
   };
 
   const handleJDFile = async (file) => {
@@ -93,20 +171,25 @@ export default function CareerBot() {
 
   const newSession = () => {
     const s = createSession("New Chat");
-    setSessions(prev => { const next = [s, ...prev]; saveSessions(next); return next; });
+    setSessions(prev => [s, ...prev]);
     setActiveSessionId(s.id);
+    saveSession(userId, s, 'careerbot');
   };
 
   const switchSession = (id) => { setActiveSessionId(id); setTab("chat"); };
 
-  const deleteSession = (id) => {
+  const handleDeleteSession = (id) => {
     setSessions(prev => {
       const next = prev.filter(s => s.id !== id);
-      if(!next.length) next.push(createSession("New Chat"));
-      saveSessions(next);
+      if(!next.length) {
+        const s = createSession("New Chat");
+        next.push(s);
+        saveSession(userId, s, 'careerbot');
+      }
       if(activeSessionId === id) setActiveSessionId(next[0].id);
       return next;
     });
+    deleteSession(id);
   };
 
   const sendMessage = useCallback(async (overrideText) => {
@@ -119,18 +202,37 @@ export default function CareerBot() {
     if(!overrideText) setInput("");
     setLoading(true); setStatus("CareerAI is thinking…");
 
-    // Auto-title session if first message
     if(messages.length === 0) {
-      setSessions(prev => { const n = prev.map(s => s.id === activeSessionId ? { ...s, title: text.slice(0,40) } : s); saveSessions(n); return n; });
+      setSessions(prev => {
+        const n = prev.map(s => {
+          if (s.id === activeSessionId) {
+            const updated = { ...s, title: text.slice(0,40) };
+            saveSession(userId, updated, 'careerbot');
+            return updated;
+          }
+          return s;
+        });
+        return n;
+      });
     }
 
+    const docContext = chatDocuments.length > 0 
+      ? "\n\nDocuments loaded:\n" + chatDocuments.map(d => `--- ${d.name} ---\n${d.text.slice(0, 2000)}`).join("\n\n")
+      : "";
+
     const history = [
-      { role:"system", content: SYSTEM + (resume ? `\n\nResume loaded: ${resume.name}\n---\n${resume.text.slice(0,2500)}` : "") + (jobDesc ? `\n\nTarget Job Description:\n${jobDesc.slice(0,1500)}` : "") },
+      { role:"system", content: SYSTEM + (resume ? `\n\nResume loaded: ${resume.name}\n---\n${resume.text.slice(0,2500)}` : "") + docContext + (jobDesc ? `\n\nTarget Job Description:\n${jobDesc.slice(0,1500)}` : "") },
       ...next.map(({ role, content }) => ({ role, content })),
     ];
     try {
-      const reply = await runAgent(history, setStatus, (list) => { setCourses(list); setTab("courses"); });
+      const reply = await runAgent(
+        history, 
+        setStatus, 
+        (list) => { setCourses(list); }, 
+        (profiles) => { /* profiles handled by LLM response now */ }
+      );
       updateMessages(p => [...p, { role:"assistant", content:reply, ts: new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) }]);
+      speak(reply); // read aloud if voice mode is on
     } catch(e) {
       updateMessages(p => [...p, { role:"assistant", content:`⚠️ Error: ${e.message}`, ts }]);
     } finally { setLoading(false); setStatus(""); }
@@ -172,7 +274,7 @@ export default function CareerBot() {
               <div className="title">{s.title}</div>
               <div className="time" style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <span>{new Date(s.updatedAt).toLocaleDateString()}</span>
-                {sessions.length > 1 && <span onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }} style={{cursor:"pointer",color:"var(--accent-rose)",fontSize:12}}>✕</span>}
+                {sessions.length > 1 && <span onClick={(e) => { e.stopPropagation(); handleDeleteSession(s.id); }} style={{cursor:"pointer",color:"var(--accent-rose)",fontSize:12}}>✕</span>}
               </div>
             </button>
           ))}
@@ -188,7 +290,7 @@ export default function CareerBot() {
             <div className="cb-header-info">
               <h2>CareerAI Assistant</h2>
               <div className="cb-header-status">
-                <span className="dot" />{resume ? `📄 ${resume.name} loaded` : "Ready"}{jobDesc ? " · JD loaded" : ""}
+                <span className="dot" />{tab === 'chat' && chatDocuments.length > 0 ? `${chatDocuments.length} doc(s) loaded` : tab === 'resume' && resume ? `📄 ${resume.name} loaded` : "Ready"}{jobDesc ? " · JD loaded" : ""}
               </div>
             </div>
           </div>
@@ -215,19 +317,8 @@ export default function CareerBot() {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="cb-tabs">
-          {[
-            { id:"chat", icon:"💬", label:"Chat" },
-            { id:"resume", icon:"📄", label:"ATS Resume", extra: resume ? "✓" : null },
-            { id:"courses", icon:"🎓", label:"Courses", extra: courses.length || null },
-          ].map(t => (
-            <button key={t.id} className={`cb-tab ${tab === t.id ? "active" : ""}`} onClick={() => setTab(t.id)}>
-              <span>{t.icon}</span> {t.label}
-              {t.extra && <span className="count">{t.extra}</span>}
-            </button>
-          ))}
-        </div>
+        {/* Tabs - Hidden, controlled by Sidebar */}
+
 
         {/* Chat Tab */}
         {tab === "chat" && (<>
@@ -291,10 +382,20 @@ export default function CareerBot() {
             <div ref={bottomRef} />
           </div>
 
-          <div className="cb-input-area">
+            <div className="cb-input-area">
+              {chatDocuments.length > 0 && (
+                <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap", padding: "0 10px" }}>
+                  {chatDocuments.map((doc, i) => (
+                    <div key={i} style={{ fontSize: 11, background: "rgba(99,102,241,0.1)", color: "var(--accent-primary-light)", padding: "4px 8px", borderRadius: 12, display: "flex", alignItems: "center", gap: 4 }}>
+                      📄 {doc.name.slice(0, 15)}...
+                      <span style={{ cursor: "pointer", opacity: 0.7 }} onClick={() => setChatDocuments(p => p.filter((_, idx) => idx !== i))}>✕</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             <div className="cb-input-row">
               <button className={`cb-icon-btn ${listening ? "active-mic" : ""}`} onClick={toggleListen} title="Voice input">🎤</button>
-              <button className="cb-icon-btn" onClick={() => fileRef.current?.click()} title="Upload resume">📎</button>
+              <button className="cb-icon-btn" onClick={() => fileRef.current?.click()} title="Upload document">📎</button>
               <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={onKey} disabled={loading} placeholder="Ask anything… (Enter to send)" rows={1} />
               <button className={`cb-send-btn ${input.trim() && !loading ? "active" : ""}`} onClick={() => sendMessage()} disabled={!input.trim() || loading}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -399,6 +500,9 @@ export default function CareerBot() {
             </>)}
           </div>
         )}
+
+        {/* Web Search Tab */}
+        {tab === "search" && <WebSearchTab />}
       </div>
     </div>
   );

@@ -2549,11 +2549,11 @@ tbody tr:last-child td {
   color: var(--text-muted);
 }
 
-/* ── Help Bot (bottom-left floating) ── */
+/* ── Help Bot (bottom-right floating) ── */
 .help-bot-btn {
   position: fixed;
   bottom: 28px;
-  left: 28px;
+  right: 28px;
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -2576,7 +2576,7 @@ tbody tr:last-child td {
 .help-bot-panel {
   position: fixed;
   bottom: 24px;
-  left: 24px;
+  right: 24px;
   width: 380px;
   height: 520px;
   border-radius: var(--radius-xl);

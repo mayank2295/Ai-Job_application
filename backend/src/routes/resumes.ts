@@ -54,23 +54,20 @@ router.post('/upload/:applicationId', upload.single('resume'), async (req: Reque
       return;
     }
 
-    const uploadResult = await AzureBlobStorageService.uploadResume({
-      applicationId,
-      fileBuffer: file.buffer,
-      originalName: file.originalname,
-      contentType: file.mimetype,
-    });
+    // Save to local disk
+    const safeFilename = `${applicationId}-${file.originalname}`;
+    const resumePath = `/uploads/${safeFilename}`;
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    fs.writeFileSync(path.join(uploadDir, safeFilename), file.buffer);
 
     try {
-      // Store stable blob URL in DB; signed URL is generated on demand.
       await run(`
         UPDATE applications SET resume_filename = $1, resume_path = $2, updated_at = $3
         WHERE id = $4
-      `, [file.originalname, uploadResult.blobUrl, new Date().toISOString(), applicationId]);
+      `, [file.originalname, resumePath, new Date().toISOString(), applicationId]);
     } catch (dbError) {
-      await AzureBlobStorageService.deleteBlob(uploadResult.blobName).catch((cleanupError) => {
-        console.error('Failed to cleanup blob after DB error:', cleanupError);
-      });
+      console.error('Database error during resume upload:', dbError);
       throw dbError;
     }
 
@@ -78,7 +75,7 @@ router.post('/upload/:applicationId', upload.single('resume'), async (req: Reque
     PowerAutomateService.triggerResumeAnalysisFlow({
       applicationId: applicationId as string,
       resumeFilename: file.originalname,
-      resumePath: uploadResult.accessUrl,
+      resumePath: `${process.env.FRONTEND_URL || 'http://localhost:5173'}${resumePath}`,
       applicantName: application.full_name,
       position: application.position
     }).catch(err => console.error('Resume analysis trigger error:', err));
@@ -87,7 +84,7 @@ router.post('/upload/:applicationId', upload.single('resume'), async (req: Reque
       message: 'Resume uploaded successfully',
       filename: file.originalname,
       size: file.size,
-      fileUrl: uploadResult.blobUrl,
+      fileUrl: resumePath,
     });
   } catch (error: any) {
     console.error('Error uploading resume:', error);
@@ -115,12 +112,13 @@ router.get('/:applicationId/download', async (req: Request, res: Response) => {
       return;
     }
 
-    if (!fs.existsSync(application.resume_path)) {
+    const absolutePath = path.join(process.cwd(), application.resume_path);
+    if (!fs.existsSync(absolutePath)) {
       res.status(404).json({ error: 'Resume file not found on disk' });
       return;
     }
 
-    res.download(application.resume_path, application.resume_filename);
+    res.download(absolutePath, application.resume_filename);
   } catch (error: any) {
     console.error('Error downloading resume:', error);
     res.status(500).json({ error: 'Failed to download resume' });

@@ -23,6 +23,9 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  // Users
+  getUsers: () => request<{ users: any[]; total: number }>('/users'),
+
   // Applications
   getApplications: (params?: Record<string, string>) => {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';

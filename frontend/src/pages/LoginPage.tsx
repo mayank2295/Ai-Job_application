@@ -46,8 +46,10 @@ export default function LoginPage() {
   const redirectTarget =
     (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/dashboard';
 
+  // Role-aware redirect after login
   if (user) {
-    return <Navigate to={redirectTarget} replace />;
+    const dest = user.role === 'admin' ? '/admin/dashboard' : '/jobs';
+    return <Navigate to={dest} replace />;
   }
 
   const handleEmailAuth = async (event: FormEvent<HTMLFormElement>) => {

@@ -1,54 +1,143 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import HelpBot from './components/HelpBot';
+import { useAuth } from './context/AuthContext';
 
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+
+// Shared pages
+import CareerBotPage from './pages/CareerBotPage';
+import SettingsPage from './pages/SettingsPage';
+
+// Admin pages
 import DashboardPage from './pages/DashboardPage';
-import ApplyPage from './pages/ApplyPage';
 import ApplicationsPage from './pages/ApplicationsPage';
 import ApplicationDetailPage from './pages/ApplicationDetailPage';
 import WorkflowsPage from './pages/WorkflowsPage';
 import ActivityPage from './pages/ActivityPage';
-import SettingsPage from './pages/SettingsPage';
-import CareerBotPage from './pages/CareerBotPage';
-import HelpBot from './components/HelpBot';
+import AdminJobsPage from './pages/AdminJobsPage';
+import AdminUsersPage from './pages/AdminUsersPage';
+
+// Candidate pages
+import JobBoardPage from './pages/JobBoardPage';
+import JobDetailPage from './pages/JobDetailPage';
+import CoursesPage from './pages/CoursesPage';
+import AtsResumePage from './pages/AtsResumePage';
+import WebSearchPage from './pages/WebSearchPage';
+// @ts-ignore
+import MyApplicationsPage from './pages/MyApplicationsPage';
+// @ts-ignore
+import ProfilePage from './pages/ProfilePage';
+
+function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="app-layout">
+      <Sidebar />
+      <Navbar />
+      <main className="main-content">{children}</main>
+      <HelpBot />
+    </div>
+  );
+}
+
+function AdminRoot() {
+  const { isAdmin, user } = useAuth();
+  if (!user) return null;
+  if (!isAdmin) return <Navigate to="/jobs" replace />;
+  return <Navigate to="/admin/dashboard" replace />;
+}
+
+function CandidateRoot() {
+  const { isAdmin, user } = useAuth();
+  if (!user) return null;
+  if (isAdmin) return <Navigate to="/admin/dashboard" replace />;
+  return <Navigate to="/jobs" replace />;
+}
 
 export default function App() {
   return (
     <BrowserRouter>
-
       <Routes>
+        {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
 
-        <Route
-          path="/*"
-          element={
-            <ProtectedRoute>
-              <div className="app-layout">
-                <Sidebar />
-                <Navbar />
-                <main className="main-content">
-                  <Routes>
-                    <Route path="/dashboard" element={<DashboardPage />} />
-                    <Route path="/apply" element={<ApplyPage />} />
-                    <Route path="/applications" element={<ApplicationsPage />} />
-                    <Route path="/applications/:id" element={<ApplicationDetailPage />} />
-                    <Route path="/workflows" element={<WorkflowsPage />} />
-                    <Route path="/activity" element={<ActivityPage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                    <Route path="/career-bot" element={<CareerBotPage />} />
-                  </Routes>
-                </main>
-                <HelpBot />
-              </div>
-            </ProtectedRoute>
-          }
-        />
+        {/* Role redirect */}
+        <Route path="/home" element={<ProtectedRoute><CandidateRoot /></ProtectedRoute>} />
+
+        {/* Admin routes */}
+        <Route path="/admin/*" element={
+          <ProtectedRoute requiredRole="admin">
+            <AppLayout>
+              <Routes>
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="applications" element={<ApplicationsPage />} />
+                <Route path="applications/:id" element={<ApplicationDetailPage />} />
+                <Route path="jobs" element={<AdminJobsPage />} />
+                <Route path="users" element={<AdminUsersPage />} />
+                <Route path="workflows" element={<WorkflowsPage />} />
+                <Route path="activity" element={<ActivityPage />} />
+                <Route path="career-bot" element={<CareerBotPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+              </Routes>
+            </AppLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* Candidate routes */}
+        <Route path="/jobs" element={
+          <ProtectedRoute requiredRole="candidate">
+            <AppLayout><JobBoardPage /></AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/jobs/:id" element={
+          <ProtectedRoute requiredRole="candidate">
+            <AppLayout><JobDetailPage /></AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/my-applications" element={
+          <ProtectedRoute requiredRole="candidate">
+            <AppLayout><MyApplicationsPage /></AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute requiredRole="candidate">
+            <AppLayout><ProfilePage /></AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/career-bot" element={
+          <ProtectedRoute requiredRole="candidate">
+            <AppLayout><CareerBotPage /></AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/ats-resume" element={
+          <ProtectedRoute requiredRole="candidate">
+            <AppLayout><AtsResumePage /></AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/courses" element={
+          <ProtectedRoute requiredRole="candidate">
+            <AppLayout><CoursesPage /></AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/web-search" element={
+          <ProtectedRoute requiredRole="candidate">
+            <AppLayout><WebSearchPage /></AppLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* Legacy redirects — keep old links working */}
+        <Route path="/dashboard" element={<ProtectedRoute><AdminRoot /></ProtectedRoute>} />
+        <Route path="/applications" element={<ProtectedRoute><Navigate to="/admin/applications" replace /></ProtectedRoute>} />
+        <Route path="/apply" element={<ProtectedRoute><Navigate to="/jobs" replace /></ProtectedRoute>} />
+
+        {/* Catch-all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
 }
-
