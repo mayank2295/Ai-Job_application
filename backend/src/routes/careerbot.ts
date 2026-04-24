@@ -8,7 +8,7 @@ const getTavilyKey = () => process.env.TAVILY_API_KEY;
 const getModel = () => process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini";
 
 // ─── Tavily Search ───
-export async function tavilySearch(query: string, depth = "basic") {
+export async function tavilySearch(query: string, depth = "basic"): Promise<any> {
   const apiKey = getTavilyKey();
   if (!apiKey) throw new Error("TAVILY_API_KEY is not configured in backend.");
   
@@ -22,7 +22,7 @@ export async function tavilySearch(query: string, depth = "basic") {
 }
 
 // ─── Find Courses ───
-export async function findCoursesOnline(topic: string) {
+export async function findCoursesOnline(topic: string): Promise<any> {
   const [udemy, coursera] = await Promise.all([
     tavilySearch(`udemy course ${topic} best rated 2024`, "advanced"),
     tavilySearch(`coursera course ${topic} certificate 2024`, "advanced"),
@@ -34,7 +34,7 @@ export async function findCoursesOnline(topic: string) {
 }
 
 // ─── OpenRouter LLM ───
-export async function callLLM(messages: any[], tools: any = null) {
+export async function callLLM(messages: any[], tools: any = null): Promise<any> {
   const apiKey = getOpenRouterKey();
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not configured in backend.");
 
