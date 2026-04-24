@@ -12,6 +12,8 @@ import ApplicationDetailPage from './pages/ApplicationDetailPage';
 import WorkflowsPage from './pages/WorkflowsPage';
 import ActivityPage from './pages/ActivityPage';
 import SettingsPage from './pages/SettingsPage';
+import CareerBotPage from './pages/CareerBotPage';
+import HelpBot from './components/HelpBot';
 
 export default function App() {
   return (
@@ -37,8 +39,10 @@ export default function App() {
                     <Route path="/workflows" element={<WorkflowsPage />} />
                     <Route path="/activity" element={<ActivityPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/career-bot" element={<CareerBotPage />} />
                   </Routes>
                 </main>
+                <HelpBot />
               </div>
             </ProtectedRoute>
           }

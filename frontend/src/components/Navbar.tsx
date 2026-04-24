@@ -10,6 +10,7 @@ const pageTitles: Record<string, string> = {
   '/workflows': 'Power Automate Workflows',
   '/activity': 'Activity Log',
   '/settings': 'Settings',
+  '/career-bot': 'CareerAI Assistant',
 };
 
 export default function Navbar() {

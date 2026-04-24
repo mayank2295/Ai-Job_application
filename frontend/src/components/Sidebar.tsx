@@ -9,6 +9,7 @@ import {
   Activity,
   Home,
   LogOut,
+  Bot,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -86,6 +87,14 @@ export default function Sidebar() {
         >
           <Activity />
           <span>Activity Log</span>
+        </NavLink>
+
+        <NavLink
+          to="/career-bot"
+          className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+        >
+          <Bot />
+          <span>Career Bot</span>
         </NavLink>
 
         <span className="sidebar-section-title">System</span>
