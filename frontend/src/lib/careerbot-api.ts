@@ -1,3 +1,3 @@
-// All implementation is in careerbot-api.js
-// This file exists only for TypeScript type-checking compatibility
 export * from './careerbot-api.js';
+// Add explicit exports so TS knows they exist
+export declare function extractPdfText(file: File): Promise<string>;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Briefcase, Banknote, Building2, CheckCircle2, ArrowLeft, Upload, X } from 'lucide-react';
+import { MapPin, Banknote, Building2, CheckCircle2, ArrowLeft, Upload, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { extractPdfText } from '../lib/careerbot-api';
 

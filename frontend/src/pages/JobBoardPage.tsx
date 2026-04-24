@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Briefcase, MapPin, Clock, Search, Filter, ChevronRight, Banknote, Building2 } from 'lucide-react';
+import { Briefcase, MapPin, Search, Filter, ChevronRight, Banknote, Building2 } from 'lucide-react';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3001/api' : 'https://ai-job-application-1.onrender.com/api')).replace(/\/$/, '');
 

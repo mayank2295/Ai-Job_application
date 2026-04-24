@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Briefcase, Plus, Edit2, Trash2, ToggleLeft, ToggleRight, X, Check } from 'lucide-react';
+import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, X } from 'lucide-react';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3001/api' : 'https://ai-job-application-1.onrender.com/api')).replace(/\/$/, '');
 

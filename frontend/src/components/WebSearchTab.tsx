@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Search, Users, Globe, ExternalLink, Loader2 } from 'lucide-react';
-import { webSearch, scrapeProfiles } from '../lib/careerbot-api';
+import { webSearch } from '../lib/careerbot-api';
 
 export default function WebSearchTab() {
   const [query, setQuery] = useState('');

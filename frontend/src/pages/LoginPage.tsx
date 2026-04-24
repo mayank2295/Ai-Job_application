@@ -43,8 +43,6 @@ export default function LoginPage() {
   const [signingIn, setSigningIn] = useState(false);
   const [googleSigningIn, setGoogleSigningIn] = useState(false);
   const [authError, setAuthError] = useState('');
-  const redirectTarget =
-    (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/dashboard';
 
   // Role-aware redirect after login
   if (user) {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, Phone, Briefcase, Tag, Save, Upload } from 'lucide-react';
+import { User, Phone, Briefcase, Tag, Save } from 'lucide-react';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3001/api' : 'https://ai-job-application-1.onrender.com/api')).replace(/\/$/, '');
 
@@ -30,7 +30,7 @@ export default function ProfilePage() {
 
   const field = (label: string, icon: any, value: string, setter: (v: string) => void, placeholder: string, multiline = false) => (
     <div>
-      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 6 }}>
+      <label style={{ display: 'flex', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.05em', alignItems: 'center', gap: 6 }}>
         {icon}{label}
       </label>
       {multiline

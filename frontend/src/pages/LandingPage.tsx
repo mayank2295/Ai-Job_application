@@ -146,10 +146,10 @@ export default function LandingPage() {
                 <img src={user.photoURL} alt="" className="lp-user-avatar" referrerPolicy="no-referrer" />
               ) : (
                 <span className="lp-user-avatar lp-user-avatar-initial">
-                  {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+                  {(user.name || user.email || 'U').charAt(0).toUpperCase()}
                 </span>
               )}
-              <span className="lp-user-name">{user.displayName || user.email || 'My Account'}</span>
+              <span className="lp-user-name">{user.name || user.email || 'My Account'}</span>
               <ArrowRight size={14} />
             </Link>
           ) : (
