@@ -13,6 +13,7 @@ import applicationRoutes from './routes/applications';
 import resumeRoutes from './routes/resumes';
 import webhookRoutes from './routes/webhooks';
 import settingsRoutes from './routes/settings';
+import careerbotRoutes from './routes/careerbot';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -35,6 +36,7 @@ app.use('/api/applications', applicationRoutes);
 app.use('/api/resumes', resumeRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/careerbot', careerbotRoutes);
 
 // Root message
 app.get('/', (_req, res) => {
