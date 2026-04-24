@@ -1,6 +1,10 @@
 import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from 'pg';
+import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+
+dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local'), override: true });
 
 const connectionString = process.env.DATABASE_URL;
 

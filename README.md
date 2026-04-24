@@ -87,15 +87,34 @@ Backend on Render:
 - Start: `npm start`
 - Node: `20.x` (native module compatibility)
 
+Render environment variables:
+
+- `PORT=3001`
+- `FRONTEND_URL=https://your-vercel-app.vercel.app`
+- `DATABASE_URL=postgresql://...` from your Render Postgres external database URL
+- `DATABASE_SSL=true`
+- `AZURE_STORAGE_CONNECTION_STRING=...`
+- `AZURE_STORAGE_CONTAINER_NAME=resumes`
+- `AZURE_STORAGE_PUBLIC_READ=false` or `true` if you want public blobs
+- `AZURE_BLOB_URL_EXPIRY_MINUTES=60`
+- `WEBHOOK_API_KEY=...`
+- `PA_NEW_APPLICATION_FLOW_URL=...`
+- `PA_RESUME_ANALYSIS_FLOW_URL=...`
+
 Frontend on Vercel:
 
 - Root directory: `frontend`
 - Build: `npm run build`
 - Output: `dist`
 
+Vercel environment variables:
+
+- `VITE_API_BASE_URL=https://your-render-service.onrender.com/api`
+
 ## Practical gotchas
 
 - If you rotate the Azure Storage key, update Render env vars and redeploy.
+- Keep `.env` files local only. Add real values in Render and Vercel dashboards, not in GitHub.
 
 ## Next improvements (not done)
 
