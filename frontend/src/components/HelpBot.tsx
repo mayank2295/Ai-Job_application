@@ -24,8 +24,8 @@ export default function HelpBot() {
   const userId = user?.id || user?.firebaseUser?.uid || 'anonymous';
 
   const [open, setOpen] = useState(false);
-  const [session, setSession] = useState(null);
-  const [messages, setMessages] = useState([]);
+  const [session, setSession] = useState<any>(null);
+  const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showChips, setShowChips] = useState(true);

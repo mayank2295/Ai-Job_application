@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Users, Globe, ExternalLink, Loader2 } from 'lucide-react';
+import { Search, ExternalLink, Loader2 } from 'lucide-react';
 import { webSearch } from '../lib/careerbot-api';
 
 export default function WebSearchTab() {

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link, Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Bot, Building2, LogIn, MapPin, Sparkles, Star } from 'lucide-react';
 import './LoginPage.css';
@@ -36,7 +36,6 @@ function getAuthErrorMessage(error: unknown, method: 'email-signin' | 'email-sig
 
 export default function LoginPage() {
   const { user, signUpWithEmail, signInWithEmail, signInWithGoogle } = useAuth();
-  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUpMode, setIsSignUpMode] = useState(true);

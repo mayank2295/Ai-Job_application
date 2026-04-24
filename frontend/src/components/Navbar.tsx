@@ -35,7 +35,7 @@ export default function Navbar() {
   };
 
   const userInitial = user
-    ? (user.displayName || user.email || 'U').charAt(0).toUpperCase()
+    ? (user.name || user.email || 'U').charAt(0).toUpperCase()
     : 'U';
 
   return (

@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FileText, Briefcase, Users, Bot,
-  Settings, LogOut, Zap, Search, User, BookOpen, Globe, CheckSquare
+  Settings, LogOut, Zap, User, BookOpen, Globe, CheckSquare
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
