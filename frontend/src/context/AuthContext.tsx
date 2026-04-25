@@ -90,14 +90,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const buildAndSetUser = async (firebaseUser: User) => {
+    // Set user immediately with Firebase data for fast UI response
+    setUser(buildAppUser(firebaseUser));
+    
     try {
-      // Try to sync with backend — if it fails, still log in with Firebase data
+      // Sync with backend in background without blocking the UI
       const backendUser = await syncWithBackend(firebaseUser);
       setUser(buildAppUser(firebaseUser, backendUser));
     } catch (err) {
       console.warn('Backend sync failed, using Firebase data only:', err);
-      // Still allow login — role determined by email
-      setUser(buildAppUser(firebaseUser));
     }
   };
 

@@ -38,8 +38,21 @@ export default function AIAssistant() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [pulse, setPulse] = useState(true);
+  const [viewportWidth, setViewportWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 1280,
+  );
+  const [viewportHeight, setViewportHeight] = useState(
+    typeof window !== 'undefined' ? window.innerHeight : 800,
+  );
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const isPhone = viewportWidth < 480;
+  const isTablet = viewportWidth >= 480 && viewportWidth < 1024;
+  const chatPanelWidth = isPhone ? Math.max(280, viewportWidth - 12) : isTablet ? Math.min(360, viewportWidth - 20) : minimized ? 320 : 400;
+  const chatPanelHeight = minimized ? 60 : isPhone ? Math.min(560, viewportHeight - 18) : isTablet ? 560 : 600;
+  const chatPanelBottom = isPhone ? 8 : 24;
+  const chatPanelRight = isPhone ? 6 : isTablet ? 10 : 24;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,6 +68,15 @@ export default function AIAssistant() {
   useEffect(() => {
     const t = setTimeout(() => setPulse(false), 10000);
     return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => {
+      setViewportWidth(window.innerWidth);
+      setViewportHeight(window.innerHeight);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   const sendMessage = async (text?: string) => {
@@ -119,10 +141,10 @@ export default function AIAssistant() {
           onClick={() => setOpen(true)}
           style={{
             position: 'fixed',
-            bottom: 28,
-            right: 28,
-            width: 60,
-            height: 60,
+            bottom: isPhone ? 12 : 28,
+            right: isPhone ? 12 : 28,
+            width: isPhone ? 54 : 60,
+            height: isPhone ? 54 : 60,
             borderRadius: '50%',
             background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
             border: 'none',
@@ -166,10 +188,10 @@ export default function AIAssistant() {
           id="ai-assistant-panel"
           style={{
             position: 'fixed',
-            bottom: 24,
-            right: 24,
-            width: minimized ? 320 : 400,
-            height: minimized ? 60 : 600,
+            bottom: chatPanelBottom,
+            right: chatPanelRight,
+            width: chatPanelWidth,
+            height: chatPanelHeight,
             borderRadius: 20,
             background: 'linear-gradient(180deg, #0f1629 0%, #0d1117 100%)',
             border: '1px solid rgba(99, 102, 241, 0.3)',

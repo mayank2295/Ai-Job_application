@@ -33,7 +33,7 @@ export const api = {
   },
 
   getApplication: (id: string) =>
-    request<{ application: any; workflowLogs: any[]; followUps: any[] }>(`/applications/${id}`),
+    request<{ application: any; workflowLogs: any[]; followUps: any[]; candidate?: any }>(`/applications/${id}`),
 
   createApplication: (data: any) =>
     request<{ application: any; message: string }>('/applications', {
@@ -46,6 +46,8 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ status, notes }),
     }),
+  getAdminKanban: () =>
+    request<Record<string, any[]>>('/admin/applications/kanban'),
 
   deleteApplication: (id: string) =>
     request<{ message: string }>(`/applications/${id}`, { method: 'DELETE' }),
@@ -98,5 +100,40 @@ export const api = {
     request<{ text: string }>('/ai/chat', {
       method: 'POST',
       body: JSON.stringify({ messages }),
+    }),
+  startInterview: (payload: { jobId: string; resumeText: string; candidateId?: string }) =>
+    fetch(`${API_BASE}/ai/interview/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
+  answerInterview: (payload: { sessionId: string; answer: string; conversationHistory: any[] }) =>
+    fetch(`${API_BASE}/ai/interview/answer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
+  getInterviewHistory: (candidateId: string) =>
+    request<{ sessions: any[] }>(`/ai/interview/history/${candidateId}`),
+  generateCoverLetter: (jobId: string, candidateId: string) =>
+    fetch(`${API_BASE}/ai/cover-letter`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId, candidateId }),
+    }),
+  generateSkillQuiz: (skill: string) =>
+    request<{ quizToken: string; questions: any[] }>('/ai/skill-quiz/generate', {
+      method: 'POST',
+      body: JSON.stringify({ skill }),
+    }),
+  submitSkillQuiz: (payload: { quizToken: string; candidateId: string; answers: number[] }) =>
+    request<{ passed: boolean; score: number; correctAnswers: number[]; explanations: string[] }>('/ai/skill-quiz/submit', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  optimizeLinkedin: (resumeText: string, targetRole: string) =>
+    request<{ headline: string; aboutSection: string; topSkills: string[]; tips: string[] }>('/ai/linkedin-optimizer', {
+      method: 'POST',
+      body: JSON.stringify({ resumeText, targetRole }),
     }),
 };

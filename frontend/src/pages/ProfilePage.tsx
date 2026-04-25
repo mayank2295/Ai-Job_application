@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { User, Phone, Briefcase, Tag, Save } from 'lucide-react';
+import { useEffect } from 'react';
+import { api } from '../api/client';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3001/api' : 'https://ai-job-application-1.onrender.com/api')).replace(/\/$/, '');
 
@@ -12,6 +14,12 @@ export default function ProfilePage() {
   const [skills, setSkills] = useState(user?.skills || '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    api.getInterviewHistory(user.id).then((d) => setHistory(d.sessions || [])).catch(() => {});
+  }, [user?.id]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -51,12 +59,12 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 24, alignItems: 'start' }}>
+      <div className="profile-layout">
         {/* Avatar Card */}
-        <div className="card" style={{ textAlign: 'center', padding: 28 }}>
+        <div className="card profile-avatar-card" style={{ textAlign: 'center', padding: 28 }}>
           <div style={{ width: 80, height: 80, borderRadius: '50%', margin: '0 auto 16px', background: 'var(--gradient-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
             {user?.photoURL
-              ? <img src={user.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ? <img src={user.photoURL} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               : <span style={{ fontSize: 28, fontWeight: 800, color: 'white' }}>{(user?.name || user?.email || '?')[0].toUpperCase()}</span>
             }
           </div>
@@ -78,12 +86,25 @@ export default function ProfilePage() {
             {field('Skills', <Tag size={13} />, skills, setSkills, 'e.g. React, Node.js, Python, SQL (comma-separated)', true)}
           </div>
 
-          <div style={{ marginTop: 24, display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div className="profile-form-actions" style={{ marginTop: 24, display: 'flex', gap: 12, alignItems: 'center' }}>
             <button onClick={handleSave} disabled={saving} className="btn btn-primary">
               <Save size={15} />{saving ? 'Saving…' : 'Save Profile'}
             </button>
             {saved && <span style={{ fontSize: 13, color: 'var(--accent-emerald)', fontWeight: 600 }}>✓ Saved!</span>}
           </div>
+        </div>
+        <div className="card">
+          <h3 style={{ fontSize: 16, fontWeight: 700, marginTop: 0 }}>Interview History</h3>
+          {history.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)' }}>No interview sessions yet.</p>
+          ) : (
+            history.map((row) => (
+              <div key={row.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-primary)' }}>
+                <span>{row.job_title || 'Role'}</span>
+                <strong>{row.score ?? '-'} / 100</strong>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

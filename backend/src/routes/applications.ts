@@ -6,6 +6,8 @@ import path from 'path';
 import fs from 'fs';
 import { PowerAutomateService } from '../services/powerAutomate';
 import { callLLM } from './careerbot';
+import { body, validationResult } from 'express-validator';
+import { sendStatusUpdateEmail } from '../services/emailService';
 
 const router = Router();
 
@@ -26,7 +28,7 @@ const upload = multer({
 // GET /api/applications - List all applications
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { status, search, sort = 'created_at', order = 'desc', limit = '50', offset = '0' } = req.query;
+    const { status, search, email, sort = 'created_at', order = 'desc', limit = '50', offset = '0' } = req.query;
     const statusValue = Array.isArray(status) ? status[0] : status;
     const searchValue = Array.isArray(search) ? search[0] : search;
 
@@ -43,6 +45,10 @@ router.get('/', async (req: Request, res: Response) => {
       const startIndex = params.length + 1;
       params.push(searchTerm, searchTerm, searchTerm);
       baseQuery += ` AND (full_name ILIKE $${startIndex} OR email ILIKE $${startIndex + 1} OR position ILIKE $${startIndex + 2})`;
+    }
+    if (email) {
+      params.push(email);
+      baseQuery += ` AND email = $${params.length}`;
     }
 
     // Count total
@@ -106,7 +112,7 @@ router.get('/stats', async (_req: Request, res: Response) => {
 // GET /api/applications/:id - Get single application
 router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const application = await get('SELECT * FROM applications WHERE id = $1', [req.params.id]);
+    const application = await get<any>('SELECT * FROM applications WHERE id = $1', [req.params.id]);
 
     if (!application) {
       res.status(404).json({ error: 'Application not found' });
@@ -125,7 +131,12 @@ router.get('/:id', async (req: Request, res: Response) => {
       [req.params.id]
     );
 
-    res.json({ application, workflowLogs, followUps });
+    const candidate = await get<any>(
+      'SELECT verified_skills FROM users WHERE (id = $1 OR firebase_uid = $2 OR email = $3) LIMIT 1',
+      [application.user_id, application.user_id, application.email]
+    );
+
+    res.json({ application, workflowLogs, followUps, candidate });
   } catch (error: any) {
     console.error('Error fetching application:', error);
     res.status(500).json({ error: 'Failed to fetch application' });
@@ -212,15 +223,17 @@ router.post('/', upload.single('resume'), async (req: Request, res: Response): P
 });
 
 // PATCH /api/applications/:id/status - Update application status
-router.patch('/:id/status', async (req: Request, res: Response) => {
+router.patch(
+  '/:id/status',
+  body('status').isIn(['pending', 'reviewing', 'shortlisted', 'interviewed', 'accepted', 'rejected']),
+  async (req: Request, res: Response) => {
   try {
-    const { status, notes } = req.body;
-    const validStatuses = ['pending', 'reviewing', 'interviewed', 'accepted', 'rejected'];
-
-    if (!status || !validStatuses.includes(status)) {
-      res.status(400).json({ error: `Status must be one of: ${validStatuses.join(', ')}` });
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({ error: 'Invalid status value', details: errors.array() });
       return;
     }
+    const { status, notes } = req.body;
 
     const existing = await get('SELECT * FROM applications WHERE id = $1', [req.params.id]);
     if (!existing) {
@@ -240,6 +253,27 @@ router.patch('/:id/status', async (req: Request, res: Response) => {
     await run(`UPDATE applications SET ${updateClause} WHERE id = $${params.length}`, params);
 
     const updated = await get('SELECT * FROM applications WHERE id = $1', [req.params.id]);
+    sendStatusUpdateEmail(existing.email, existing.full_name, existing.position, status).catch((err) =>
+      console.error('Status email failed:', err)
+    );
+
+    // Create in-app notification for the candidate
+    if (existing.user_id) {
+      const statusLabels: Record<string, string> = {
+        reviewing: 'is under review',
+        shortlisted: 'has been shortlisted',
+        interviewed: 'has moved to interview stage',
+        accepted: 'has been accepted',
+        rejected: 'was not selected this time',
+      };
+      const label = statusLabels[status] || `status updated to ${status}`;
+      run(
+        `INSERT INTO notifications (user_id, title, message, type) VALUES ($1, $2, $3, $4)`,
+        [existing.user_id, 'Application Update', `Your application for ${existing.position} ${label}.`,
+          status === 'accepted' ? 'success' : status === 'rejected' ? 'error' : 'info']
+      ).catch(() => {});
+    }
+
     res.json({ application: updated, message: 'Status updated successfully' });
   } catch (error: any) {
     console.error('Error updating status:', error);

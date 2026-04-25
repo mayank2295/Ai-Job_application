@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -20,6 +21,7 @@ import WorkflowsPage from './pages/WorkflowsPage';
 import ActivityPage from './pages/ActivityPage';
 import AdminJobsPage from './pages/AdminJobsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import AdminKanbanPage from './pages/AdminKanbanPage';
 
 // Candidate pages
 import JobBoardPage from './pages/JobBoardPage';
@@ -27,16 +29,26 @@ import JobDetailPage from './pages/JobDetailPage';
 import CoursesPage from './pages/CoursesPage';
 import AtsResumePage from './pages/AtsResumePage';
 import WebSearchPage from './pages/WebSearchPage';
-// @ts-ignore
 import MyApplicationsPage from './pages/MyApplicationsPage';
-// @ts-ignore
 import ProfilePage from './pages/ProfilePage';
-
+import InterviewPage from './pages/InterviewPage';
+import SkillAssessmentPage from './pages/SkillAssessmentPage';
+import LinkedinOptimizerPage from './pages/LinkedinOptimizerPage';
 function AppLayout({ children }: { children: React.ReactNode }) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const isMobileViewport = window.matchMedia('(max-width: 1024px)').matches;
+    const isAdminRoute = window.location.pathname.startsWith('/admin');
+    return isMobileViewport && isAdminRoute;
+  });
+
   return (
     <div className="app-layout">
-      <Sidebar />
-      <Navbar />
+      <Sidebar
+        isMobileMenuOpen={isMobileMenuOpen}
+        onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
+      />
+      <Navbar onMenuClick={() => setIsMobileMenuOpen((prev) => !prev)} />
       <main className="main-content">{children}</main>
       <HelpBot />
     </div>
@@ -78,10 +90,14 @@ export default function App() {
                 <Route path="applications/:id" element={<ApplicationDetailPage />} />
                 <Route path="jobs" element={<AdminJobsPage />} />
                 <Route path="users" element={<AdminUsersPage />} />
+                <Route path="kanban" element={<AdminKanbanPage />} />
                 <Route path="workflows" element={<WorkflowsPage />} />
                 <Route path="activity" element={<ActivityPage />} />
                 <Route path="career-bot" element={<CareerBotPage />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="ats-resume" element={<AtsResumePage />} />
+                <Route path="linkedin-optimizer" element={<LinkedinOptimizerPage />} />
+                <Route path="skill-assessment" element={<SkillAssessmentPage />} />
                 <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
               </Routes>
             </AppLayout>
@@ -107,6 +123,26 @@ export default function App() {
         <Route path="/profile" element={
           <ProtectedRoute requiredRole="candidate">
             <AppLayout><ProfilePage /></AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/interview" element={
+          <ProtectedRoute requiredRole="candidate">
+            <AppLayout><InterviewPage /></AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/interview/:jobId" element={
+          <ProtectedRoute requiredRole="candidate">
+            <AppLayout><InterviewPage /></AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/skill-assessment" element={
+          <ProtectedRoute requiredRole="candidate">
+            <AppLayout><SkillAssessmentPage /></AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/linkedin-optimizer" element={
+          <ProtectedRoute requiredRole="candidate">
+            <AppLayout><LinkedinOptimizerPage /></AppLayout>
           </ProtectedRoute>
         } />
         <Route path="/career-bot" element={

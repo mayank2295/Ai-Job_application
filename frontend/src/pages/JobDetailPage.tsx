@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MapPin, Banknote, Building2, CheckCircle2, ArrowLeft, Upload, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { extractPdfText } from '../lib/careerbot-api';
+import { api } from '../api/client';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3001/api' : 'https://ai-job-application-1.onrender.com/api')).replace(/\/$/, '');
 
@@ -21,6 +22,9 @@ export default function JobDetailPage() {
   const [submitted, setSubmitted] = useState(false);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [coverLetter, setCoverLetter] = useState('');
+  const [includeCoverLetter, setIncludeCoverLetter] = useState(true);
+  const [generatingLetter, setGeneratingLetter] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [phone, setPhone] = useState(user?.phone || '');
 
   useEffect(() => {
@@ -47,6 +51,7 @@ export default function JobDetailPage() {
       formData.append('phone', phone);
       formData.append('position', job.title);
       formData.append('cover_letter', coverLetter);
+      if (!includeCoverLetter) formData.set('cover_letter', '');
       formData.append('resume_text', resumeText);
       formData.append('job_description', job.description + '\n' + (job.requirements || ''));
 
@@ -61,6 +66,26 @@ export default function JobDetailPage() {
   };
 
   if (loading) return <div className="page-container"><div className="loading-container"><div className="loading-spinner" /></div></div>;
+  const generateCoverLetter = async () => {
+    if (!user?.id || !id) return;
+    setGeneratingLetter(true);
+    setCoverLetter('');
+    try {
+      const res = await api.generateCoverLetter(id, user.id);
+      const reader = res.body?.getReader();
+      if (!reader) return;
+      const decoder = new TextDecoder();
+      let done = false;
+      while (!done) {
+        const chunk = await reader.read();
+        done = chunk.done;
+        if (chunk.value) setCoverLetter((prev) => prev + decoder.decode(chunk.value, { stream: true }));
+      }
+    } finally {
+      setGeneratingLetter(false);
+    }
+  };
+
   if (!job) return <div className="page-container"><div className="empty-state"><div className="empty-state-title">Job not found</div></div></div>;
 
   const reqs: string[] = (() => { try { return JSON.parse(job.requirements || '[]'); } catch { return []; } })();
@@ -138,6 +163,9 @@ export default function JobDetailPage() {
               <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowApply(true)}>
                 Apply Now
               </button>
+              <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center', marginTop: 10 }} onClick={() => navigate(`/interview/${id}`)}>
+                Practice Interview
+              </button>
             </>
           ) : (
             <>
@@ -170,8 +198,19 @@ export default function JobDetailPage() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cover Letter (optional)</label>
+                  <button className="btn btn-secondary btn-sm" onClick={generateCoverLetter} disabled={generatingLetter || !user?.id} style={{ marginBottom: 8 }}>
+                    {generatingLetter ? 'Generating...' : '✨ Generate Cover Letter'}
+                  </button>
                   <textarea value={coverLetter} onChange={e => setCoverLetter(e.target.value)} rows={4} placeholder="Tell us why you're a great fit…"
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-primary)', background: 'var(--bg-input, var(--bg-card))', color: 'var(--text-primary)', fontSize: 14, resize: 'vertical', outline: 'none', boxSizing: 'border-box' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+                    <label style={{ fontSize: 12 }}>
+                      <input type="checkbox" checked={includeCoverLetter} onChange={(e) => setIncludeCoverLetter(e.target.checked)} /> Include with Application
+                    </label>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => { navigator.clipboard.writeText(coverLetter); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
+                      {copied ? 'Copied!' : 'Copy to Clipboard'}
+                    </button>
+                  </div>
                 </div>
 
                 <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}

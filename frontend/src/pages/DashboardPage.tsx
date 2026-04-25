@@ -124,7 +124,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Two Column Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
+      <div className="admin-dashboard-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
         {/* Recent Applications */}
         <div className="table-container">
           <div className="table-header">

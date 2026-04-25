@@ -73,7 +73,7 @@ export default function AdminJobsPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {jobs.map(job => (
-            <div key={job.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px' }}>
+            <div key={job.id} className="card admin-job-card" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
                   <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{job.title}</span>
@@ -87,7 +87,7 @@ export default function AdminJobsPage() {
                   <span style={{ color: 'var(--accent-primary)' }}>{job.applicant_count || 0} applicants</span>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <div className="admin-job-actions" style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                 <button onClick={() => toggleActive(job)} title={job.is_active ? 'Deactivate' : 'Activate'}
                   style={{ width: 34, height: 34, border: '1px solid var(--border-primary)', borderRadius: 8, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: job.is_active ? 'var(--accent-emerald)' : 'var(--text-muted)' }}>
                   {job.is_active ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
@@ -108,13 +108,13 @@ export default function AdminJobsPage() {
 
       {/* Modal */}
       {showForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', padding: 28, width: '100%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--border-primary)' }}>
+        <div className="admin-job-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div className="admin-job-modal-surface" style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', padding: 28, width: '100%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--border-primary)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{editing ? 'Edit Job' : 'Post New Job'}</h2>
               <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20} /></button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="admin-job-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               {[['Job Title *', 'title', 'e.g. Senior Developer', 'text'],
                 ['Location *', 'location', 'e.g. Bangalore, India', 'text'],
                 ['Department', 'department', 'e.g. Engineering', 'text'],
@@ -144,7 +144,7 @@ export default function AdminJobsPage() {
               <textarea value={form.requirements} onChange={e => setForm(p => ({ ...p, requirements: e.target.value }))} rows={4} placeholder="5+ years of experience in React&#10;Strong TypeScript skills&#10;…"
                 style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 14, resize: 'vertical', outline: 'none', boxSizing: 'border-box' }} />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
+            <div className="admin-job-modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
               <button onClick={() => setShowForm(false)} className="btn btn-secondary">Cancel</button>
               <button onClick={handleSave} disabled={saving || !form.title || !form.location || !form.description} className="btn btn-primary">
                 {saving ? 'Saving…' : editing ? 'Update Job' : 'Post Job'}

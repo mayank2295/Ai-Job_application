@@ -19,6 +19,9 @@ export default function MyApplicationsPage() {
   const navigate = useNavigate();
   const [apps, setApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [boardView, setBoardView] = useState(false);
+  const statuses = ['pending', 'reviewing', 'interviewed', 'accepted', 'rejected'];
+  const grouped = statuses.reduce((acc: any, s) => ({ ...acc, [s]: apps.filter((a) => a.status === s) }), {});
 
   useEffect(() => {
     if (!user) return;
@@ -36,6 +39,7 @@ export default function MyApplicationsPage() {
           <p>{apps.length} application{apps.length !== 1 ? 's' : ''} submitted</p>
         </div>
         <button className="btn btn-primary" onClick={() => navigate('/jobs')}>Browse Jobs</button>
+        <button className="btn btn-secondary" onClick={() => setBoardView((v) => !v)}>{boardView ? 'List View' : 'Board View'}</button>
       </div>
 
       {loading ? (
@@ -46,6 +50,23 @@ export default function MyApplicationsPage() {
           <div className="empty-state-title">No applications yet</div>
           <div className="empty-state-desc">Browse open positions and apply to get started</div>
           <button className="btn btn-primary" onClick={() => navigate('/jobs')}>View Jobs</button>
+        </div>
+      ) : boardView ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
+          {statuses.map((status) => {
+            const cfg = STATUS_CONFIG[status];
+            return (
+              <div className="card" key={status} style={{ borderColor: cfg.color }}>
+                <h4 style={{ color: cfg.color }}>{cfg.label}</h4>
+                {(grouped[status] || []).map((app: any) => (
+                  <div key={app.id} className="card" style={{ marginBottom: 8 }}>
+                    <div style={{ fontWeight: 700 }}>{app.position}</div>
+                    <div style={{ fontSize: 12 }}>{new Date(app.created_at).toLocaleDateString()}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

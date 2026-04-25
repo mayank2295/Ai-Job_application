@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { get, run, query } from '../database/db';
 import { v4 as uuidv4 } from 'uuid';
+import { sendWelcomeEmail } from '../services/emailService';
 
 const router = Router();
 const ADMIN_EMAIL = 'mayankgupta23081@gmail.com';
@@ -19,6 +20,7 @@ router.post('/sync', async (req: Request, res: Response): Promise<void> => {
     const now = new Date().toISOString();
 
     // Upsert user
+    const existing = await get('SELECT id FROM users WHERE firebase_uid = $1', [firebase_uid]);
     await run(`
       INSERT INTO users (id, firebase_uid, email, name, photo_url, role, created_at, updated_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -27,6 +29,9 @@ router.post('/sync', async (req: Request, res: Response): Promise<void> => {
             photo_url = EXCLUDED.photo_url,
             updated_at = EXCLUDED.updated_at
     `, [id, firebase_uid, email, name || '', photo_url || '', role, now, now]);
+    if (!existing) {
+      sendWelcomeEmail(email, name || '').catch((err) => console.error('Welcome email failed:', err));
+    }
 
     const user = await get('SELECT * FROM users WHERE firebase_uid = $1', [firebase_uid]);
     res.json({ user });
@@ -39,14 +44,28 @@ router.post('/sync', async (req: Request, res: Response): Promise<void> => {
 // GET /api/users/me?firebase_uid=xxx — Get current user's profile + role
 router.get('/me', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { firebase_uid } = req.query;
+    const { firebase_uid, email, name, photo_url } = req.query;
     if (!firebase_uid) {
       res.status(400).json({ error: 'firebase_uid is required' });
       return;
     }
     const user = await get('SELECT * FROM users WHERE firebase_uid = $1', [firebase_uid as string]);
     if (!user) {
-      res.status(404).json({ error: 'User not found' });
+      if (!email) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+      }
+      const role = String(email) === ADMIN_EMAIL ? 'admin' : 'candidate';
+      const id = uuidv4();
+      const now = new Date().toISOString();
+      await run(
+        `INSERT INTO users (id, firebase_uid, email, name, photo_url, role, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [id, firebase_uid as string, email as string, String(name || ''), String(photo_url || ''), role, now, now]
+      );
+      sendWelcomeEmail(email as string, String(name || '')).catch((err) => console.error('Welcome email failed:', err));
+      const created = await get('SELECT * FROM users WHERE firebase_uid = $1', [firebase_uid as string]);
+      res.json({ user: created });
       return;
     }
     res.json({ user });

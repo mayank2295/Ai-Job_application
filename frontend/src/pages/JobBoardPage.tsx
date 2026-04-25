@@ -46,29 +46,30 @@ export default function JobBoardPage() {
       <div className="page-header">
         <div className="page-header-left">
           <h1>Job Board</h1>
-          <p>{jobs.length} open position{jobs.length !== 1 ? 's' : ''} available</p>
+          <p>{jobs.length} open position{jobs.length !== 1 ? 's' : ''} available for you</p>
         </div>
       </div>
 
       {/* Search + Filter */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 260, position: 'relative' }}>
-          <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+      <div className="job-board-toolbar">
+        <div className="job-board-search-wrap">
+          <Search size={16} className="job-board-search-icon" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by title, location, or department…"
-            style={{ width: '100%', paddingLeft: 38, paddingRight: 16, height: 42, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+            className="job-board-search"
+            aria-label="Search jobs"
           />
         </div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+
+        <div className="job-board-filter-wrap">
           {JOB_TYPES.map(t => (
-            <button key={t} onClick={() => setActiveType(t)}
-              style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid', fontSize: 13, cursor: 'pointer', transition: 'all 0.15s',
-                background: activeType === t ? 'var(--accent-primary)' : 'var(--bg-card)',
-                borderColor: activeType === t ? 'var(--accent-primary)' : 'var(--border-primary)',
-                color: activeType === t ? 'white' : 'var(--text-secondary)',
-              }}>
+            <button
+              key={t}
+              onClick={() => setActiveType(t)}
+              className={`job-board-filter-btn ${activeType === t ? 'active' : ''}`}
+            >
               {t === 'all' ? 'All Types' : t}
             </button>
           ))}
@@ -84,36 +85,39 @@ export default function JobBoardPage() {
           <div className="empty-state-desc">Try adjusting your search or filters</div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: 16 }}>
+        <div className="job-board-grid">
           {filtered.map(job => (
-            <div key={job.id} className="card"
+            <div key={job.id} className="card job-board-card"
               onClick={() => navigate(`/jobs/${job.id}`)}
-              style={{ cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 20, padding: '20px 24px' }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent-primary)')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-primary)')}>
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && navigate(`/jobs/${job.id}`)}>
 
               {/* Company logo placeholder */}
-              <div style={{ width: 52, height: 52, borderRadius: 'var(--radius-md)', background: `${TYPE_COLORS[job.type] || '#6366f1'}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div className="job-board-card-icon" style={{ background: `${TYPE_COLORS[job.type] || '#6366f1'}20` }}>
                 <Building2 size={22} color={TYPE_COLORS[job.type] || '#6366f1'} />
               </div>
 
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{job.title}</h3>
-                  <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: `${TYPE_COLORS[job.type]}20`, color: TYPE_COLORS[job.type] || '#6366f1' }}>{job.type}</span>
+              <div className="job-board-card-main">
+                <div className="job-board-card-top">
+                  <h3 className="job-board-card-title">{job.title}</h3>
+                  <span className="job-board-job-type" style={{ background: `${TYPE_COLORS[job.type]}20`, color: TYPE_COLORS[job.type] || '#6366f1' }}>
+                    {job.type}
+                  </span>
                 </div>
-                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: 'var(--text-muted)' }}><Building2 size={13} />{job.company}</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: 'var(--text-muted)' }}><MapPin size={13} />{job.location}</span>
-                  {job.department && <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: 'var(--text-muted)' }}><Filter size={13} />{job.department}</span>}
-                  {job.salary_range && <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: 'var(--accent-emerald)' }}><Banknote size={13} />{job.salary_range}</span>}
+
+                <div className="job-board-meta-list">
+                  <span className="job-board-meta-item"><Building2 size={13} />{job.company}</span>
+                  <span className="job-board-meta-item"><MapPin size={13} />{job.location}</span>
+                  {job.department && <span className="job-board-meta-item"><Filter size={13} />{job.department}</span>}
+                  {job.salary_range && <span className="job-board-meta-item job-board-salary"><Banknote size={13} />{job.salary_range}</span>}
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{job.applicant_count || 0} applicants</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{new Date(job.created_at).toLocaleDateString()}</div>
+              <div className="job-board-card-side">
+                <div className="job-board-card-side-meta">
+                  <div>{job.applicant_count || 0} applicants</div>
+                  <div>{new Date(job.created_at).toLocaleDateString()}</div>
                 </div>
                 <ChevronRight size={18} color="var(--text-muted)" />
               </div>

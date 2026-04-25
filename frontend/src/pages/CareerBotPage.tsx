@@ -1,4 +1,3 @@
-// @ts-ignore
 import CareerBot from '../components/CareerBot';
 
 export default function CareerBotPage() {

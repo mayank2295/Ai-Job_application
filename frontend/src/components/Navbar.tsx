@@ -1,6 +1,7 @@
-import { useLocation } from 'react-router-dom';
-import { Bell, Search } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Menu, Search } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import NotificationBell from './NotificationBell';
 import { useAuth } from '../context/AuthContext';
 
 const pageTitles: Record<string, string> = {
@@ -8,6 +9,7 @@ const pageTitles: Record<string, string> = {
   '/admin/applications': 'All Applications',
   '/admin/jobs': 'Manage Jobs',
   '/admin/users': 'All Users',
+  '/admin/kanban': 'Kanban',
   '/admin/workflows': 'Workflows',
   '/admin/activity': 'Activity Log',
   '/admin/career-bot': 'CareerAI Assistant',
@@ -16,6 +18,8 @@ const pageTitles: Record<string, string> = {
   '/my-applications': 'My Applications',
   '/profile': 'My Profile',
   '/career-bot': 'CareerAI Assistant',
+  '/skill-assessment': 'Skill Assessment',
+  '/linkedin-optimizer': 'LinkedIn Optimizer',
   '/courses': 'Find Courses',
   // legacy
   '/dashboard': 'Dashboard',
@@ -25,8 +29,13 @@ const pageTitles: Record<string, string> = {
   '/settings': 'Settings',
 };
 
-export default function Navbar() {
+interface NavbarProps {
+  onMenuClick?: () => void;
+}
+
+export default function Navbar({ onMenuClick }: NavbarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
 
   const getTitle = () => {
@@ -38,23 +47,37 @@ export default function Navbar() {
     ? (user.name || user.email || 'U').charAt(0).toUpperCase()
     : 'U';
 
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate('/home');
+  };
+
   return (
     <header className="navbar">
       <div className="navbar-left">
+        <button className="navbar-icon-btn" title="Go back" onClick={handleGoBack}>
+          <ArrowLeft />
+        </button>
+        <button className="navbar-icon-btn navbar-menu-btn" title="Open menu" onClick={onMenuClick}>
+          <Menu />
+        </button>
         <h2 className="navbar-page-title">{getTitle()}</h2>
       </div>
       <div className="navbar-right">
         <button className="navbar-icon-btn" title="Search">
           <Search />
         </button>
-        <button className="navbar-icon-btn" title="Notifications">
-          <Bell />
-        </button>
+        <NotificationBell />
         <ThemeToggle />
         {user?.photoURL ? (
           <img
             src={user.photoURL}
             alt=""
+            loading="lazy"
+            decoding="async"
             referrerPolicy="no-referrer"
             style={{
               width: 34,

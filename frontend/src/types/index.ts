@@ -8,7 +8,7 @@ export interface Application {
   cover_letter: string | null;
   resume_filename: string | null;
   resume_path: string | null;
-  status: 'pending' | 'reviewing' | 'interviewed' | 'accepted' | 'rejected';
+  status: 'pending' | 'reviewing' | 'shortlisted' | 'interviewed' | 'accepted' | 'rejected';
   ai_analysis: string | null;
   ai_score: number | null;
   ai_skills: string | null;

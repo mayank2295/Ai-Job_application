@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
+/* Font: Inter is loaded globally via index.css */
 
 .lp-page {
   --lp-bg-main: #0b1628;
@@ -20,7 +20,7 @@
     linear-gradient(145deg, var(--lp-bg-main) 0%, var(--lp-bg-soft) 52%, #1d2f52 100%);
   color: var(--lp-text);
   min-height: 100vh;
-  font-family: 'Sora', 'SF Pro Display', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .lp-bg-mesh,

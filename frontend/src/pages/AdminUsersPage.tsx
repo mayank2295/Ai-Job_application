@@ -81,7 +81,7 @@ export default function AdminUsersPage() {
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       {u.photo_url ? (
-                        <img src={u.photo_url} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                        <img src={u.photo_url} alt="" loading="lazy" decoding="async" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
                       ) : (
                         <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--gradient-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700 }}>
                           {(u.name || u.email || '?')[0].toUpperCase()}

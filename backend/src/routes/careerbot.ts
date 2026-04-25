@@ -1,5 +1,4 @@
 import { Router, Request, Response } from 'express';
-import { v4 as uuidv4 } from 'uuid';
 import { all, get, run } from '../database/db';
 
 const router = Router();
@@ -198,11 +197,19 @@ router.get('/sessions', async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({ error: 'user_id and bot_type are required' });
       return;
     }
-    const sessions = await all(
+    
+    const rows: unknown[] = await all(
       'SELECT * FROM chat_sessions WHERE user_id = $1 AND bot_type = $2 ORDER BY updated_at DESC',
       [user_id as string, bot_type as string]
     );
-    res.json({ sessions });
+    
+    // Explicitly parse messages from JSON storage back into arrays
+    const formattedRows = rows.map((r: any) => ({
+      ...r,
+      messages: typeof r.messages === 'string' ? JSON.parse(r.messages) : (r.messages || [])
+    }));
+    
+    res.json(formattedRows);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -212,27 +219,32 @@ router.get('/sessions', async (req: Request, res: Response): Promise<void> => {
 router.post('/sessions', async (req: Request, res: Response): Promise<void> => {
   try {
     const { id, user_id, bot_type, title, messages } = req.body;
-    if (!user_id || !bot_type || !messages) {
-      res.status(400).json({ error: 'user_id, bot_type, and messages are required' });
+    
+    if (!id || !user_id || !bot_type) {
+      res.status(400).json({ error: 'id, user_id, and bot_type are required.' });
       return;
     }
-
-    const sessionId = id || uuidv4();
-    const msgsStr = typeof messages === 'string' ? messages : JSON.stringify(messages);
-    const now = new Date().toISOString();
+    
+    const ts = new Date().toISOString();
+    // Serialize messages to JSON string (PostgreSQL JSON/TEXT column)
+    const msgsParam = typeof messages === 'string' ? messages : JSON.stringify(messages || []);
 
     await run(`
       INSERT INTO chat_sessions (id, user_id, bot_type, title, messages, created_at, updated_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
-      ON CONFLICT (id) DO UPDATE
-        SET title = EXCLUDED.title,
-            messages = EXCLUDED.messages,
-            updated_at = EXCLUDED.updated_at
-    `, [sessionId, user_id, bot_type, title || 'New Chat', msgsStr, now, now]);
+      ON CONFLICT (id) DO UPDATE SET
+        title = EXCLUDED.title,
+        messages = EXCLUDED.messages,
+        updated_at = EXCLUDED.updated_at
+    `, [id, user_id, bot_type, title || 'New Chat', msgsParam, ts, ts]);
 
-    const session = await get('SELECT * FROM chat_sessions WHERE id = $1', [sessionId]);
-    res.json({ session });
+    const session = await get('SELECT * FROM chat_sessions WHERE id = $1', [id]);
+    if (session) {
+      (session as any).messages = typeof (session as any).messages === 'string' ? JSON.parse((session as any).messages) : ((session as any).messages || []);
+    }
+    res.json(session);
   } catch (error: any) {
+    console.error("Session sync error:", error.message);
     res.status(500).json({ error: error.message });
   }
 });

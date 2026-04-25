@@ -23,6 +23,7 @@ export default function ApplicationDetailPage() {
   const navigate = useNavigate();
   const [application, setApplication] = useState<Application | null>(null);
   const [workflowLogs, setWorkflowLogs] = useState<WorkflowLog[]>([]);
+  const [verifiedSkills, setVerifiedSkills] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [toast, setToast] = useState<{ type: string; message: string } | null>(null);
@@ -36,6 +37,7 @@ export default function ApplicationDetailPage() {
       const data = await api.getApplication(appId);
       setApplication(data.application);
       setWorkflowLogs(data.workflowLogs || []);
+      setVerifiedSkills(Array.isArray(data.candidate?.verified_skills) ? data.candidate.verified_skills : []);
     } catch (err) {
       console.error('Failed to load application:', err);
     } finally {
@@ -143,6 +145,15 @@ export default function ApplicationDetailPage() {
           {/* Personal Info */}
           <div className="detail-section">
             <div className="detail-section-title"><User size={16} /> Personal Information</div>
+            {verifiedSkills.length > 0 && (
+              <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+                {verifiedSkills.map((s) => (
+                  <span className="badge badge-accepted" key={s}>
+                    Verified: {s}
+                  </span>
+                ))}
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
               <div className="detail-field">
                 <div className="detail-field-label">Full Name</div>

@@ -6,6 +6,7 @@ export declare function analyzeATS(resumeText: string, jobDesc?: string): Promis
 export declare function findCoursesOnline(topic: string): Promise<any[]>;
 export declare function webSearch(query: string): Promise<any>;
 export declare function scrapeProfiles(query: string): Promise<any>;
+export declare function optimizeLinkedin(resumeText: string, targetRole: string): Promise<any>;
 export declare function callLLM(history: any[]): Promise<any>;
 export declare function loadSessions(userId: string, botType?: string): Promise<any[]>;
 export declare function saveSession(userId: string, session: any, botType?: string): Promise<void>;

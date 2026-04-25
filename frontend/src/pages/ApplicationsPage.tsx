@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, FileText, PlusCircle } from 'lucide-react';
+import { Search, FileText, PlusCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../api/client';
 import type { Application } from '../types';
 
-const statusFilters = ['all', 'pending', 'reviewing', 'interviewed', 'accepted', 'rejected'];
+const statusFilters = ['all', 'pending', 'reviewing', 'shortlisted', 'interviewed', 'accepted', 'rejected'];
+const PAGE_SIZE = 20;
 
 export default function ApplicationsPage() {
   const navigate = useNavigate();
@@ -13,15 +14,25 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, search]);
 
   useEffect(() => {
     loadApplications();
-  }, [statusFilter, search]);
+  }, [statusFilter, search, page]);
 
   const loadApplications = async () => {
     setLoading(true);
     try {
-      const params: Record<string, string> = {};
+      const params: Record<string, string> = {
+        limit: String(PAGE_SIZE),
+        offset: String((page - 1) * PAGE_SIZE),
+      };
       if (statusFilter !== 'all') params.status = statusFilter;
       if (search) params.search = search;
 
@@ -83,15 +94,8 @@ export default function ApplicationsPage() {
             <div className="empty-state-icon"><FileText /></div>
             <div className="empty-state-title">No applications found</div>
             <div className="empty-state-desc">
-              {search || statusFilter !== 'all'
-                ? 'Try adjusting your filters'
-                : 'Submit your first application to get started'}
+              {search || statusFilter !== 'all' ? 'Try adjusting your filters' : 'No applications yet'}
             </div>
-            {!search && statusFilter === 'all' && (
-              <button className="btn btn-primary" onClick={() => navigate('/apply')}>
-                <PlusCircle size={16} /> Apply Now
-              </button>
-            )}
           </div>
         ) : (
           <table>
@@ -110,9 +114,7 @@ export default function ApplicationsPage() {
               {applications.map((app) => (
                 <tr key={app.id} onClick={() => navigate(`/admin/applications/${app.id}`)}>
                   <td>
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 13.5 }}>
-                      {app.full_name}
-                    </div>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 13.5 }}>{app.full_name}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{app.email}</div>
                   </td>
                   <td style={{ fontWeight: 500 }}>{app.position}</td>
@@ -125,22 +127,14 @@ export default function ApplicationsPage() {
                   </td>
                   <td>
                     {app.ai_score ? (
-                      <span style={{
-                        fontWeight: 700,
-                        color: app.ai_score >= 80 ? 'var(--accent-emerald)' :
-                          app.ai_score >= 60 ? 'var(--accent-amber)' : 'var(--accent-rose)'
-                      }}>
+                      <span style={{ fontWeight: 700, color: app.ai_score >= 80 ? 'var(--accent-emerald)' : app.ai_score >= 60 ? 'var(--accent-amber)' : 'var(--accent-rose)' }}>
                         {app.ai_score}%
                       </span>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>
-                    )}
+                    ) : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>}
                   </td>
                   <td>
                     {app.workflow_status !== 'none' && (
-                      <span className={`badge badge-${app.workflow_status}`}>
-                        {app.workflow_status}
-                      </span>
+                      <span className={`badge badge-${app.workflow_status}`}>{app.workflow_status}</span>
                     )}
                   </td>
                   <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>
@@ -152,6 +146,50 @@ export default function ApplicationsPage() {
           </table>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, padding: '0 4px' }}>
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+            Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
+          </span>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button
+              className="btn btn-secondary"
+              style={{ padding: '6px 10px' }}
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+              const p = totalPages <= 7 ? i + 1 : page <= 4 ? i + 1 : page >= totalPages - 3 ? totalPages - 6 + i : page - 3 + i;
+              return (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  style={{
+                    width: 32, height: 32, borderRadius: 6, border: '1px solid var(--border-primary)',
+                    background: p === page ? 'var(--accent-primary)' : 'var(--bg-card)',
+                    color: p === page ? 'white' : 'var(--text-secondary)',
+                    fontWeight: p === page ? 700 : 400, fontSize: 13, cursor: 'pointer',
+                  }}
+                >
+                  {p}
+                </button>
+              );
+            })}
+            <button
+              className="btn btn-secondary"
+              style={{ padding: '6px 10px' }}
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

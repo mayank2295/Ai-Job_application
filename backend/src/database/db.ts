@@ -83,6 +83,9 @@ export async function initializeDatabase(): Promise<void> {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='applications' AND column_name='notes') THEN
           ALTER TABLE applications ADD COLUMN notes TEXT;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='verified_skills') THEN
+          ALTER TABLE users ADD COLUMN verified_skills JSONB DEFAULT '[]'::jsonb;
+        END IF;
       END $$;
     `);
 
@@ -95,8 +98,49 @@ export async function initializeDatabase(): Promise<void> {
           title TEXT,
           messages TEXT NOT NULL DEFAULT '[]',
           created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+          updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Drop the old FK constraint if it exists (user_id stores Firebase UID, not users.id)
+    await pool.query(`
+      ALTER TABLE chat_sessions DROP CONSTRAINT IF EXISTS chat_sessions_user_id_fkey;
+    `).catch(() => {});
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS interview_sessions (
+        id TEXT PRIMARY KEY,
+        candidate_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+        job_id TEXT REFERENCES jobs(id) ON DELETE SET NULL,
+        conversation JSONB NOT NULL DEFAULT '[]'::jsonb,
+        score INTEGER,
+        feedback TEXT,
+        strengths TEXT[],
+        improvements TEXT[],
+        completed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS pending_quizzes (
+        token TEXT PRIMARY KEY,
+        skill TEXT NOT NULL,
+        questions JSONB NOT NULL,
+        expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '30 minutes'),
+        used BOOLEAN DEFAULT FALSE
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        user_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        type TEXT NOT NULL DEFAULT 'info',
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
     `);
   } catch (err) {

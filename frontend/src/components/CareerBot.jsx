@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { extractPdfText, runAgent, analyzeATS, findCoursesOnline, callLLM, loadSessions, saveSession, deleteSession, createSession, renderMarkdown } from "../lib/careerbot-api";
+import { extractPdfText, runAgent, analyzeATS, findCoursesOnline, callLLM, loadSessions, saveSession, deleteSession, createSession, renderMarkdown, optimizeLinkedin } from "../lib/careerbot-api";
 import WebSearchTab from "./WebSearchTab";
 import { useAuth } from "../context/AuthContext";
 
@@ -87,6 +87,8 @@ Rules:
   const [courseLoading, setCourseLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceOn, setVoiceOn] = useState(false);
+  const [linkedinRole, setLinkedinRole] = useState("");
+  const [linkedinResult, setLinkedinResult] = useState(null);
 
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
@@ -329,7 +331,7 @@ Rules:
                 <h3>Ready to help your career</h3>
                 <p>Ask anything · Upload your resume · Find courses · Get career advice</p>
                 <div className="cb-quick-prompts">
-                  {["Analyze my resume for ATS","Find Python courses","Hot tech skills in 2025?","Interview tips for SDE"].map(q => (
+                  {["Analyze my resume for ATS","Find Python courses","Hot tech skills in 2025?","Interview tips for SDE", "LinkedIn Optimizer"].map(q => (
                     <button key={q} className="cb-quick-prompt" onClick={() => setInput(q)}>{q}</button>
                   ))}
                 </div>
@@ -401,8 +403,40 @@ Rules:
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
             </div>
+            <div style={{ display: "flex", gap: 6, padding: "8px 10px 0" }}>
+              <button className="cb-quick-action" onClick={() => setInput("LinkedIn Optimizer")}>LinkedIn Optimizer</button>
+            </div>
             <input ref={fileRef} type="file" accept=".pdf,.txt,.doc,.docx" style={{display:"none"}} onChange={e => handleFile(e.target.files[0])} />
           </div>
+          {input.toLowerCase().includes("linkedin optimizer") && (
+            <div className="card" style={{ margin: 12 }}>
+              <h4>What role are you targeting?</h4>
+              <input value={linkedinRole} onChange={(e) => setLinkedinRole(e.target.value)} placeholder="e.g. Senior Frontend Engineer" />
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={async () => {
+                  const text = chatDocuments[0]?.text || resume?.text || "";
+                  if (!text || !linkedinRole.trim()) return;
+                  const out = await optimizeLinkedin(text, linkedinRole.trim());
+                  setLinkedinResult(out);
+                }}
+              >
+                Generate
+              </button>
+              {linkedinResult && (
+                <div>
+                  <h5>Headline ({linkedinResult.headline.length}/120)</h5>
+                  <p>{linkedinResult.headline}</p>
+                  <h5>About Section</h5>
+                  <p>{linkedinResult.aboutSection}</p>
+                  <h5>Top Skills</h5>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{linkedinResult.topSkills.map((s) => <span className="cb-tag" key={s}>{s}</span>)}</div>
+                  <h5>Tips</h5>
+                  <ol>{linkedinResult.tips.map((t, i) => <li key={i}>{t}</li>)}</ol>
+                </div>
+              )}
+            </div>
+          )}
         </>)}
 
         {/* ATS Resume Tab */}

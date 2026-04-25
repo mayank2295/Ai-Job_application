@@ -5,6 +5,20 @@ const API_BASE = (
         ? 'http://localhost:3001/api'
         : 'https://ai-job-application-1.onrender.com/api')
 ).replace(/\/$/, '');
+let pdfjsModulePromise = null;
+
+async function getPdfJs() {
+  if (!pdfjsModulePromise) {
+    pdfjsModulePromise = Promise.all([
+      import('pdfjs-dist'),
+      import('pdfjs-dist/build/pdf.worker.mjs?url'),
+    ]).then(([pdfjsLib, worker]) => {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = worker.default;
+      return pdfjsLib;
+    });
+  }
+  return pdfjsModulePromise;
+}
 
 async function backendPost(path, body) {
   const r = await fetch(`${API_BASE}${path}`, {
@@ -20,18 +34,9 @@ async function backendPost(path, body) {
 }
 
 export async function extractPdfText(file) {
-  if (!window.pdfjsLib) {
-    await new Promise((res, rej) => {
-      const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-      s.onload = res; s.onerror = rej;
-      document.head.appendChild(s);
-    });
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  }
+  const pdfjsLib = await getPdfJs();
   const buf = await file.arrayBuffer();
-  const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
   let out = '';
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
@@ -70,6 +75,10 @@ export async function scrapeProfiles(query) {
   return backendPost('/careerbot/profiles', { query });
 }
 
+export async function optimizeLinkedin(resumeText, targetRole) {
+  return backendPost('/ai/linkedin-optimizer', { resumeText, targetRole });
+}
+
 export async function callLLM(history) {
   const data = await backendPost('/careerbot/simple-chat', { history });
   return { choices: [{ message: { content: data.reply } }] };
@@ -82,7 +91,8 @@ export async function loadSessions(userId, botType = 'careerbot') {
     const res = await fetch(`${API_BASE}/careerbot/sessions?user_id=${userId}&bot_type=${botType}`);
     if (!res.ok) return [];
     const data = await res.json();
-    return (data.sessions || []).map(s => ({
+    const sessions = Array.isArray(data) ? data : (data.sessions || []);
+    return sessions.map(s => ({
       id: s.id,
       title: s.title,
       messages: typeof s.messages === 'string' ? JSON.parse(s.messages) : (s.messages || []),

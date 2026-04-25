@@ -16,6 +16,8 @@ import settingsRoutes from './routes/settings';
 import careerbotRoutes from './routes/careerbot';
 import usersRoutes from './routes/users';
 import jobsRoutes from './routes/jobs';
+import aiFeaturesRoutes from './routes/aiFeatures';
+import adminRoutes from './routes/admin';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -41,6 +43,8 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/careerbot', careerbotRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/jobs', jobsRoutes);
+app.use('/api/ai', aiFeaturesRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Root message
 app.get('/', (_req, res) => {

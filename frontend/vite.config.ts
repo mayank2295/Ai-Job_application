@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     // Fix Cross-Origin-Opener-Policy blocking Firebase Google Auth popup
     headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      'Cross-Origin-Opener-Policy': 'unsafe-none',
       'Cross-Origin-Embedder-Policy': 'unsafe-none',
     },
   },

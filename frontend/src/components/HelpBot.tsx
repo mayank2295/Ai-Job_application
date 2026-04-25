@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { HelpCircle, X, Send } from 'lucide-react';
-// @ts-ignore
 import { callLLM, renderMarkdown, loadSessions, saveSession, createSession } from '../lib/careerbot-api';
 import { useAuth } from '../context/AuthContext';
 

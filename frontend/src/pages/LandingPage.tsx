@@ -115,7 +115,8 @@ const liveEvents = [
 ];
 
 export default function LandingPage() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const dashboardPath = isAdmin ? '/admin/dashboard' : '/jobs';
 
   return (
     <div className="lp-page">
@@ -141,9 +142,9 @@ export default function LandingPage() {
         <div className="lp-header-actions">
           <ThemeToggle />
           {user ? (
-            <Link to="/dashboard" className="lp-user-profile-link">
+            <Link to={dashboardPath} className="lp-user-profile-link">
               {user.photoURL ? (
-                <img src={user.photoURL} alt="" className="lp-user-avatar" referrerPolicy="no-referrer" />
+                <img src={user.photoURL} alt="" loading="lazy" decoding="async" className="lp-user-avatar" referrerPolicy="no-referrer" />
               ) : (
                 <span className="lp-user-avatar lp-user-avatar-initial">
                   {(user.name || user.email || 'U').charAt(0).toUpperCase()}
@@ -170,7 +171,7 @@ export default function LandingPage() {
             </motion.p>
 
             <motion.div className="lp-actions" variants={reveal}>
-              <Link to={user ? '/dashboard' : '/login'} className="lp-btn lp-btn-primary">
+              <Link to={user ? dashboardPath : '/login'} className="lp-btn lp-btn-primary">
                 {user ? 'Open Dashboard' : 'Login to Dashboard'} <ArrowRight size={16} />
               </Link>
               <a href="#workflow" className="lp-btn lp-btn-secondary">View workflow</a>
@@ -361,7 +362,7 @@ export default function LandingPage() {
           <h2>Ready to simplify your hiring workflow?</h2>
           <p>Track applications, analyze resumes, and move faster with one AI-first hiring system.</p>
           <div className="lp-actions">
-            <Link to={user ? '/dashboard' : '/login'} className="lp-btn lp-btn-primary">
+            <Link to={user ? dashboardPath : '/login'} className="lp-btn lp-btn-primary">
               {user ? 'Open Dashboard' : 'Login to Dashboard'}
             </Link>
             <a href="#features" className="lp-btn lp-btn-secondary">Explore features</a>
