@@ -38,29 +38,6 @@ export default function InterviewPage() {
   const questionCount = messages.filter((m) => m.role === 'assistant').length;
   const totalQuestions = 10;
 
-  const start = async () => {
-    setError('');
-    if (!resumeText.trim()) { setError('Please paste your resume text before starting.'); return; }
-    setLoading(true);
-    try {
-      const data = await postJSON('/ai/interview/start', {
-        jobId: jobId || undefined,
-        resumeText,
-        candidateId: user?.id || user?.firebaseUser?.uid,
-      });
-      setSessionId(data.sessionId || data['x-session-id'] || '');
-      // The first question comes back as plain text via stream — handle both cases
-      const firstQ = data.question || data.firstQuestion || data.reply || '';
-      if (firstQ) {
-        setMessages([{ role: 'assistant', content: firstQ }]);
-      }
-    } catch (e: any) {
-      setError(e?.message || 'Could not start interview');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const startStream = async () => {
     setError('');
     if (!resumeText.trim()) { setError('Please paste your resume text before starting.'); return; }

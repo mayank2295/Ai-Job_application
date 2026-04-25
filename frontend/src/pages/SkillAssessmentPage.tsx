@@ -136,7 +136,7 @@ export default function SkillAssessmentPage() {
 
   // Final result screen
   if (finalResult) {
-    const { score, passed, correctAnswers, explanations, questionResults: qr } = finalResult;
+    const { score, passed, questionResults: qr } = finalResult;
     return (
       <div className="page-container">
         <div className="card" style={{ maxWidth: 680, margin: '0 auto' }}>
