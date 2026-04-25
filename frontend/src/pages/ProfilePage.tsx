@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Phone, Briefcase, Save, X, Plus } from 'lucide-react';
+import { User, Phone, Briefcase, Save, X } from 'lucide-react';
 import { api } from '../api/client';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3001/api' : 'https://ai-job-application-1.onrender.com/api')).replace(/\/$/, '');
