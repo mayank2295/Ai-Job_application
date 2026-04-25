@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FileText, Briefcase, Users, Bot,
   Settings, LogOut, Zap, User, BookOpen, Globe, CheckSquare,
-  Mic, BarChart2, Link2
+  Mic, BarChart2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -57,13 +57,11 @@ export default function Sidebar({
               <span className="sidebar-section-title">Management</span>
               {link('/admin/dashboard', LayoutDashboard, 'Dashboard')}
               {link('/admin/applications', FileText, 'All Applications')}
-              {link('/admin/kanban', CheckSquare, 'Kanban')}
               {link('/admin/jobs', Briefcase, 'Manage Jobs')}
               {link('/admin/users', Users, 'All Users')}
               <span className="sidebar-section-title">Tools</span>
               {link('/admin/career-bot', Bot, 'AI Chat')}
               {link('/admin/ats-resume', CheckSquare, 'ATS Analyzer')}
-              {link('/admin/linkedin-optimizer', Link2, 'LinkedIn Optimizer')}
               {link('/admin/skill-assessment', BarChart2, 'Skill Assessment')}
               {link('/admin/settings', Settings, 'Settings')}
             </>
@@ -79,7 +77,6 @@ export default function Sidebar({
               {link('/interview', Mic, 'Mock Interview')}
               {link('/ats-resume', CheckSquare, 'ATS Analyzer')}
               {link('/skill-assessment', BarChart2, 'Skill Assessment')}
-              {link('/linkedin-optimizer', Link2, 'LinkedIn Optimizer')}
               {link('/courses', BookOpen, 'Find Courses')}
               {link('/web-search', Globe, 'Web Search')}
             </>

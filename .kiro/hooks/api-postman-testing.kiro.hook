@@ -1,15 +1,14 @@
 {
   "enabled": true,
   "name": "API Postman Testing",
-  "description": "Monitors backend API route and config changes and automatically runs Postman collection tests to validate functionality",
+  "description": "Monitors backend API source code changes and automatically runs Postman collection tests to validate functionality",
   "version": "1",
   "when": {
     "type": "fileEdited",
     "patterns": [
       "backend/src/routes/*.ts",
-      "backend/src/server.ts",
-      "backend/src/middleware/*.ts",
-      "backend/src/services/*.ts"
+      "backend/src/services/*.ts",
+      "backend/src/server.ts"
     ]
   },
   "then": {

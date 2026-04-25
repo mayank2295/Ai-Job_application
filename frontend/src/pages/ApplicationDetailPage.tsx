@@ -221,9 +221,17 @@ export default function ApplicationDetailPage() {
               <div className="file-upload-selected">
                 <FileText size={18} />
                 <span className="file-name">{application.resume_filename}</span>
-                <button className="btn btn-ghost btn-sm">
+                <a
+                  href={application.resume_path?.startsWith('http')
+                    ? application.resume_path
+                    : `${import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'https://ai-job-application-1.onrender.com/api'}/resumes/${application.id}/download`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-ghost btn-sm"
+                  style={{ textDecoration: 'none' }}
+                >
                   <Download size={14} /> Download
-                </button>
+                </a>
               </div>
             </div>
           )}

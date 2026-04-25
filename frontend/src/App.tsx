@@ -21,7 +21,6 @@ import WorkflowsPage from './pages/WorkflowsPage';
 import ActivityPage from './pages/ActivityPage';
 import AdminJobsPage from './pages/AdminJobsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
-import AdminKanbanPage from './pages/AdminKanbanPage';
 
 // Candidate pages
 import JobBoardPage from './pages/JobBoardPage';
@@ -33,7 +32,6 @@ import MyApplicationsPage from './pages/MyApplicationsPage';
 import ProfilePage from './pages/ProfilePage';
 import InterviewPage from './pages/InterviewPage';
 import SkillAssessmentPage from './pages/SkillAssessmentPage';
-import LinkedinOptimizerPage from './pages/LinkedinOptimizerPage';
 function AppLayout({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -90,13 +88,11 @@ export default function App() {
                 <Route path="applications/:id" element={<ApplicationDetailPage />} />
                 <Route path="jobs" element={<AdminJobsPage />} />
                 <Route path="users" element={<AdminUsersPage />} />
-                <Route path="kanban" element={<AdminKanbanPage />} />
                 <Route path="workflows" element={<WorkflowsPage />} />
                 <Route path="activity" element={<ActivityPage />} />
                 <Route path="career-bot" element={<CareerBotPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="ats-resume" element={<AtsResumePage />} />
-                <Route path="linkedin-optimizer" element={<LinkedinOptimizerPage />} />
                 <Route path="skill-assessment" element={<SkillAssessmentPage />} />
                 <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
               </Routes>
@@ -138,11 +134,6 @@ export default function App() {
         <Route path="/skill-assessment" element={
           <ProtectedRoute requiredRole="candidate">
             <AppLayout><SkillAssessmentPage /></AppLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/linkedin-optimizer" element={
-          <ProtectedRoute requiredRole="candidate">
-            <AppLayout><LinkedinOptimizerPage /></AppLayout>
           </ProtectedRoute>
         } />
         <Route path="/career-bot" element={

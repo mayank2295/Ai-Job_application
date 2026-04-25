@@ -17,7 +17,7 @@ backend/.env
 frontend/.env
 
 # Backend specific
-backend/data/applications.db
+backend/data/
 backend/uploads/
 backend/dist/
 
@@ -29,3 +29,6 @@ frontend/*.local
 # Mac/Windows OS files
 .DS_Store
 Thumbs.db
+
+# Kiro spec files (internal tooling)
+.kiro/specs/

@@ -1,122 +1,131 @@
-# AI Job Application Automation
+# JobFlow AI
 
-Small full-stack project for tracking job applications and handling resume uploads.
+An AI-powered hiring platform for candidates and recruiters — built with React, Node.js, and PostgreSQL.
 
-## What this app does (today)
+**Live:**
+- Frontend: https://ai-job-application-eight.vercel.app
+- Backend API: https://ai-job-application-1.onrender.com/api
+- Health check: https://ai-job-application-1.onrender.com/api/health
 
-- Lets a candidate submit an application
-- Lets a candidate upload a resume (PDF/DOC/DOCX)
-- Stores application data in PostgreSQL
-- Stores resumes in Azure Blob Storage (no resume files are saved on the server disk)
-- Provides recruiter-style pages to view applications + activity
+---
 
-## Live
+## What it does
 
-- Frontend (Vercel): https://ai-job-application-eight.vercel.app/
-- Backend (Render): https://ai-job-application-1.onrender.com
-- Backend health: https://ai-job-application-1.onrender.com/api/health
+**For Candidates**
+- Browse job listings and apply with resume upload + AI cover letter generation
+- Track application status with real-time in-app notifications
+- AI Chat (CareerBot) — web search, career advice, course finder
+- ATS Resume Analyzer — scores your resume against job descriptions
+- Mock Interview — 10 hard questions, per-answer feedback, CV enhancement tips
+- Skill Assessment — 10-question quizzes, verified skill badges on profile
+- LinkedIn Optimizer — AI-generated headline, about section, and tips
+- Course Finder — Udemy & Coursera results via Tavily search
 
-Note: set `VITE_API_BASE_URL` on Vercel to your backend API base (example:
-`https://ai-job-application-1.onrender.com/api`). If it’s not set, the frontend
-falls back to the default in `frontend/src/api/client.ts`.
+**For Admins**
+- Dashboard with application stats and recent activity
+- Applications table with search, filter by status, and pagination
+- Kanban board — drag and drop candidates across pipeline stages
+- Manage jobs (create, edit, toggle active)
+- Manage users
+- All AI tools available to admins too
 
-## How resume uploads work
+---
 
-1. Frontend sends `multipart/form-data` with a `resume` file
-2. Backend validates type and size (10MB max)
-3. Backend uploads the bytes to Azure Blob Storage (container defaults to `resumes`)
-4. Backend stores the blob URL in `applications.resume_path`
-5. Download uses a redirect to a signed blob URL when possible
+## Tech stack
+
+| Layer | Tech |
+|-------|------|
+| Frontend | React 19, TypeScript, Vite, Framer Motion |
+| Backend | Node.js, Express, TypeScript |
+| Database | PostgreSQL (Render external) |
+| Auth | Firebase (Google + email/password) |
+| AI | OpenRouter (GPT-4o-mini) + Tavily Search |
+| Deploy | Vercel (frontend) + Render (backend) |
+
+---
 
 ## Run locally
 
-Open two terminals.
-
-Recommended: use Node `20.x` (matches the Render deploy and avoids native module surprises).
-
-Backend:
-
+**Backend**
 ```bash
 cd backend
+cp .env.example .env   # fill in your values
 npm install
 npm run dev
 ```
 
-Frontend:
-
+**Frontend**
 ```bash
 cd frontend
+cp .env.example .env   # fill in your values
 npm install
 npm run dev
 ```
 
 Local URLs:
-
-- Frontend: http://localhost:5173
+- Frontend: http://localhost:5174
 - Backend: http://localhost:3001
 
-Resume uploads will fail locally unless the Azure env vars are set.
+---
 
-## Backend environment variables
+## Environment variables
 
-Start from `.env.example`. Don’t commit real secrets.
+**Backend** (`backend/.env`)
+```
+PORT=3001
+DATABASE_URL=postgresql://...
+DATABASE_SSL=true
+OPENROUTER_API_KEY=sk-or-v1-...
+TAVILY_API_KEY=tvly-...
+OPENROUTER_MODEL=openai/gpt-4o-mini
+FRONTEND_URL=http://localhost:5174
+```
 
-Required (Azure):
+**Frontend** (`frontend/.env`)
+```
+VITE_API_BASE_URL=https://ai-job-application-1.onrender.com/api
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+```
 
-- `AZURE_STORAGE_CONNECTION_STRING`
-- `AZURE_STORAGE_CONTAINER_NAME` (default: `resumes`)
-- `AZURE_STORAGE_PUBLIC_READ` (optional)
-- `AZURE_BLOB_URL_EXPIRY_MINUTES` (used for signed download URLs)
+Never commit `.env` files. Set real values in Vercel and Render dashboards.
 
-App / integration:
+---
 
-- `PORT`
-- `FRONTEND_URL`
-- `DATABASE_URL`
-- `DATABASE_SSL` (set `true` when using a provider that requires SSL)
-- `WEBHOOK_API_KEY`
-- `PA_NEW_APPLICATION_FLOW_URL`
-- `PA_RESUME_ANALYSIS_FLOW_URL`
+## Deploy
 
-## Deployment notes (what I used)
-
-Backend on Render:
-
+**Render (backend)**
 - Root directory: `backend`
 - Build: `npm ci && npm run build`
 - Start: `npm start`
-- Node: `20.x` (native module compatibility)
+- Node: `20.x`
 
-Render environment variables:
-
-- `PORT=3001`
-- `FRONTEND_URL=https://your-vercel-app.vercel.app`
-- `DATABASE_URL=postgresql://...` from your Render Postgres external database URL
-- `DATABASE_SSL=true`
-- `AZURE_STORAGE_CONNECTION_STRING=...`
-- `AZURE_STORAGE_CONTAINER_NAME=resumes`
-- `AZURE_STORAGE_PUBLIC_READ=false` or `true` if you want public blobs
-- `AZURE_BLOB_URL_EXPIRY_MINUTES=60`
-- `WEBHOOK_API_KEY=...`
-- `PA_NEW_APPLICATION_FLOW_URL=...`
-- `PA_RESUME_ANALYSIS_FLOW_URL=...`
-
-Frontend on Vercel:
-
+**Vercel (frontend)**
 - Root directory: `frontend`
 - Build: `npm run build`
 - Output: `dist`
+- Set `VITE_API_BASE_URL` in Vercel environment variables
 
-Vercel environment variables:
+---
 
-- `VITE_API_BASE_URL=https://your-render-service.onrender.com/api`
+## Project structure
 
-## Practical gotchas
-
-- If you rotate the Azure Storage key, update Render env vars and redeploy.
-- Keep `.env` files local only. Add real values in Render and Vercel dashboards, not in GitHub.
-
-## Next improvements (not done)
-
-- Add auth/roles for recruiter/admin
-- Add malware scanning before storing resumes
+```
+├── frontend/          React + TypeScript (Vite)
+│   └── src/
+│       ├── components/   Sidebar, Navbar, NotificationBell, CareerBot, HelpBot...
+│       ├── pages/        All route pages
+│       ├── context/      AuthContext, ThemeContext
+│       ├── api/          API client
+│       └── lib/          careerbot-api.js, firebase.ts
+│
+└── backend/           Node.js + Express + TypeScript
+    └── src/
+        ├── routes/       applications, jobs, users, admin, careerbot, aiFeatures...
+        ├── database/     db.ts (pg pool), schema.sql
+        └── services/     emailService, powerAutomate, azureBlobStorage
+```

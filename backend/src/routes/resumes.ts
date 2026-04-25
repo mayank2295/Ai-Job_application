@@ -1,42 +1,25 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
 import { get, run } from '../database/db';
-import { PowerAutomateService } from '../services/powerAutomate';
-import { AzureBlobStorageService } from '../services/azureBlobStorage';
+import { uploadResume } from '../services/cloudinaryStorage';
 
 const router = Router();
 
-const ALLOWED_EXTENSIONS = new Set(['.pdf', '.doc', '.docx']);
-const ALLOWED_MIME_TYPES = new Set([
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/octet-stream',
-]);
-
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    if (!ALLOWED_EXTENSIONS.has(ext)) {
-      cb(new Error('Only PDF, DOC, and DOCX files are allowed'));
-      return;
+    if (['.pdf', '.doc', '.docx', '.txt'].includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF, DOC, DOCX, and TXT files are allowed'));
     }
-
-    const mimeType = (file.mimetype || '').toLowerCase();
-    if (!ALLOWED_MIME_TYPES.has(mimeType)) {
-      cb(new Error('Invalid file type for resume upload'));
-      return;
-    }
-
-    cb(null, true);
-  }
+  },
 });
 
-// POST /api/resumes/upload/:applicationId - Upload resume for an application
+// POST /api/resumes/upload/:applicationId
 router.post('/upload/:applicationId', upload.single('resume'), async (req: Request, res: Response) => {
   try {
     const applicationId = String(req.params.applicationId);
@@ -47,52 +30,35 @@ router.post('/upload/:applicationId', upload.single('resume'), async (req: Reque
       return;
     }
 
-    // Check application exists
     const application = await get('SELECT * FROM applications WHERE id = $1', [applicationId]) as any;
     if (!application) {
       res.status(404).json({ error: 'Application not found' });
       return;
     }
 
-    // Save to local disk
-    const safeFilename = `${applicationId}-${file.originalname}`;
-    const resumePath = `/uploads/${safeFilename}`;
-    const uploadDir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-    fs.writeFileSync(path.join(uploadDir, safeFilename), file.buffer);
+    // Upload to Cloudinary
+    const { url, publicId } = await uploadResume(file.buffer, file.originalname, applicationId);
 
-    try {
-      await run(`
-        UPDATE applications SET resume_filename = $1, resume_path = $2, updated_at = $3
-        WHERE id = $4
-      `, [file.originalname, resumePath, new Date().toISOString(), applicationId]);
-    } catch (dbError) {
-      console.error('Database error during resume upload:', dbError);
-      throw dbError;
-    }
-
-    // Trigger resume analysis flow
-    PowerAutomateService.triggerResumeAnalysisFlow({
-      applicationId: applicationId as string,
-      resumeFilename: file.originalname,
-      resumePath: `${process.env.FRONTEND_URL || 'http://localhost:5173'}${resumePath}`,
-      applicantName: application.full_name,
-      position: application.position
-    }).catch(err => console.error('Resume analysis trigger error:', err));
+    await run(
+      `UPDATE applications SET resume_filename = $1, resume_path = $2, updated_at = $3 WHERE id = $4`,
+      [file.originalname, url, new Date().toISOString(), applicationId]
+    );
 
     res.json({
       message: 'Resume uploaded successfully',
       filename: file.originalname,
       size: file.size,
-      fileUrl: resumePath,
+      fileUrl: url,
+      publicId,
     });
   } catch (error: any) {
-    console.error('Error uploading resume:', error);
+    console.error('Resume upload error:', error);
     res.status(500).json({ error: error?.message || 'Failed to upload resume' });
   }
 });
 
-// GET /api/resumes/:applicationId/download - Download resume
+// GET /api/resumes/:applicationId/download
+// Since Cloudinary URLs are direct HTTPS links, just redirect to the stored URL
 router.get('/:applicationId/download', async (req: Request, res: Response) => {
   try {
     const application = await get('SELECT * FROM applications WHERE id = $1', [req.params.applicationId]) as any;
@@ -102,45 +68,26 @@ router.get('/:applicationId/download', async (req: Request, res: Response) => {
       return;
     }
 
-    if (application.resume_path.startsWith('http://') || application.resume_path.startsWith('https://')) {
-      AzureBlobStorageService.getReadUrlFromStoredUrl(application.resume_path)
-        .then((signedUrl) => res.redirect(signedUrl))
-        .catch((error) => {
-          console.error('Error generating signed resume URL:', error);
-          res.status(500).json({ error: 'Failed to generate resume download link' });
-        });
+    // Cloudinary URL — redirect directly
+    if (application.resume_path.startsWith('http')) {
+      res.redirect(application.resume_path);
       return;
     }
 
-    const absolutePath = path.join(process.cwd(), application.resume_path);
-    if (!fs.existsSync(absolutePath)) {
-      res.status(404).json({ error: 'Resume file not found on disk' });
-      return;
-    }
-
-    res.download(absolutePath, application.resume_filename);
+    res.status(404).json({ error: 'Resume file not available' });
   } catch (error: any) {
-    console.error('Error downloading resume:', error);
+    console.error('Resume download error:', error);
     res.status(500).json({ error: 'Failed to download resume' });
   }
 });
 
+// Multer error handler
 router.use((error: any, _req: Request, res: Response, _next: NextFunction) => {
-  if (error instanceof multer.MulterError) {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      res.status(400).json({ error: 'File too large. Maximum allowed size is 10MB' });
-      return;
-    }
-    res.status(400).json({ error: error.message });
+  if (error?.code === 'LIMIT_FILE_SIZE') {
+    res.status(400).json({ error: 'File too large. Maximum 10MB allowed.' });
     return;
   }
-
-  if (error) {
-    res.status(400).json({ error: error.message || 'Invalid upload request' });
-    return;
-  }
-
-  res.status(500).json({ error: 'Upload processing failed' });
+  res.status(400).json({ error: error?.message || 'Upload failed' });
 });
 
 export default router;
