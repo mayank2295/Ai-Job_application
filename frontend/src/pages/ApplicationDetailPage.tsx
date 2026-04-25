@@ -1,22 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft,
-  User,
-  Mail,
-  Phone,
-  Briefcase,
-  Clock,
-  FileText,
-  Download,
-  Sparkles,
-  Zap,
-  Trash2,
+  ArrowLeft, User, Mail, Phone, Briefcase, Clock, FileText,
+  Download, Sparkles, Zap, Trash2, RefreshCw,
 } from 'lucide-react';
 import { api } from '../api/client';
 import type { Application, WorkflowLog } from '../types';
 
-const statusOptions = ['pending', 'reviewing', 'interviewed', 'accepted', 'rejected'];
+const API_BASE = (import.meta.env.VITE_API_BASE_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3001/api' : 'https://ai-job-application-1.onrender.com/api')).replace(/\/$/, '');
+
+const statusOptions = ['pending', 'reviewing', 'shortlisted', 'interviewed', 'accepted', 'rejected'];
 
 export default function ApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +19,7 @@ export default function ApplicationDetailPage() {
   const [verifiedSkills, setVerifiedSkills] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [toast, setToast] = useState<{ type: string; message: string } | null>(null);
 
   useEffect(() => {
@@ -72,6 +66,22 @@ export default function ApplicationDetailPage() {
   const showToast = (type: string, message: string) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const analyzeNow = async () => {
+    if (!application || !id) return;
+    setAnalyzing(true);
+    try {
+      const res = await fetch(`${API_BASE}/applications/${id}/analyze`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Analysis failed');
+      setApplication(prev => prev ? { ...prev, ai_score: data.ai_score, ai_analysis: data.ai_analysis, ai_skills: data.ai_skills } : prev);
+      showToast('success', 'AI analysis complete');
+    } catch (e: any) {
+      showToast('error', e.message || 'Analysis failed');
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   if (loading) {

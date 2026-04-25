@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE = (
   import.meta.env.VITE_API_BASE_URL?.trim() ||
@@ -22,8 +23,18 @@ const TYPE_COLOR: Record<string, string> = {
   info: 'var(--accent-primary)',
 };
 
+// Extract application ID from notification message if present
+function getAppLink(message: string, isAdmin: boolean): string | null {
+  // Notifications about applications — link to my-applications for candidates
+  if (message.toLowerCase().includes('application')) {
+    return isAdmin ? '/admin/applications' : '/my-applications';
+  }
+  return null;
+}
+
 export default function NotificationBell() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -43,7 +54,7 @@ export default function NotificationBell() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 30000); // poll every 30s
+    const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
   }, [userId]);
 
@@ -74,6 +85,14 @@ export default function NotificationBell() {
     if (!open && unread > 0) markAllRead();
   };
 
+  const handleNotificationClick = (n: Notification) => {
+    const link = getAppLink(n.message, isAdmin);
+    if (link) {
+      setOpen(false);
+      navigate(link);
+    }
+  };
+
   return (
     <div style={{ position: 'relative' }} ref={panelRef}>
       <button className="navbar-icon-btn" title="Notifications" onClick={handleOpen} style={{ position: 'relative' }}>
@@ -93,11 +112,13 @@ export default function NotificationBell() {
           position: 'absolute', top: 'calc(100% + 8px)', right: 0,
           width: 320, maxHeight: 420, overflowY: 'auto',
           background: 'var(--bg-card)', border: '1px solid var(--border-primary)',
-          borderRadius: 'var(--radius-md)', boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+          borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
           zIndex: 1000,
         }}>
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>Notifications</span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>
+              Notifications {unread > 0 && <span style={{ fontSize: 11, background: 'var(--accent-rose)', color: 'white', borderRadius: 10, padding: '1px 6px', marginLeft: 4 }}>{unread}</span>}
+            </span>
             {notifications.length > 0 && (
               <button onClick={markAllRead} style={{ fontSize: 11, color: 'var(--accent-primary)', background: 'none', border: 'none', cursor: 'pointer' }}>
                 Mark all read
@@ -110,28 +131,41 @@ export default function NotificationBell() {
               No notifications yet
             </div>
           ) : (
-            notifications.map((n) => (
-              <div key={n.id} style={{
-                padding: '12px 16px',
-                borderBottom: '1px solid var(--border-primary)',
-                background: n.is_read ? 'transparent' : 'rgba(99,102,241,0.04)',
-                transition: 'background 0.15s',
-              }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                  <span style={{
-                    width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 5,
-                    background: n.is_read ? 'var(--border-primary)' : TYPE_COLOR[n.type] || TYPE_COLOR.info,
-                  }} />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{n.title}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{n.message}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                      {new Date(n.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            notifications.map((n) => {
+              const link = getAppLink(n.message, isAdmin);
+              return (
+                <div
+                  key={n.id}
+                  onClick={() => handleNotificationClick(n)}
+                  style={{
+                    padding: '12px 16px',
+                    borderBottom: '1px solid var(--border-primary)',
+                    background: n.is_read ? 'transparent' : 'rgba(99,102,241,0.04)',
+                    cursor: link ? 'pointer' : 'default',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => { if (link) e.currentTarget.style.background = 'var(--bg-glass-hover)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = n.is_read ? 'transparent' : 'rgba(99,102,241,0.04)'; }}
+                >
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <span style={{
+                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 5,
+                      background: n.is_read ? 'var(--border-primary)' : TYPE_COLOR[n.type] || TYPE_COLOR.info,
+                    }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{n.title}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{n.message}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                          {new Date(n.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        {link && <span style={{ fontSize: 11, color: 'var(--accent-primary)' }}>View -&gt;</span>}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       )}

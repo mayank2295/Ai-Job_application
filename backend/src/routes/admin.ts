@@ -71,3 +71,19 @@ router.patch('/notifications/read', async (req: Request, res: Response): Promise
 });
 
 export default router;
+
+// GET /api/admin/top-candidates — top 5 by AI score
+router.get('/top-candidates', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const rows = await all<any>(
+      `SELECT id, full_name, email, position, ai_score, status, created_at
+       FROM applications
+       WHERE ai_score IS NOT NULL
+       ORDER BY ai_score DESC
+       LIMIT 5`
+    );
+    res.json({ candidates: rows });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});

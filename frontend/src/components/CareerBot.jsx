@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+﻿import { useState, useRef, useEffect, useCallback } from "react";
 import { extractPdfText, runAgent, analyzeATS, findCoursesOnline, callLLM, loadSessions, saveSession, deleteSession, createSession, renderMarkdown, optimizeLinkedin } from "../lib/careerbot-api";
 import WebSearchTab from "./WebSearchTab";
 import { useAuth } from "../context/AuthContext";
@@ -29,8 +29,8 @@ Your capabilities:
 - Interview prep, salary negotiation, career path advice
 
 Response strategy:
-1. Understand user intent deeply — ask a clarifying question if the request is ambiguous
-2. Give practical, real-world solutions — not theory
+1. Understand user intent deeply - ask a clarifying question if the request is ambiguous
+2. Give practical, real-world solutions - not theory
 3. Provide step-by-step guidance with examples
 4. For coding: write clean, production-ready code with comments and suggest optimizations
 5. For learning queries: start simple, go deeper, then summarize at the end
@@ -42,7 +42,7 @@ Rules:
 - Use find_courses when the user wants to learn a skill
 - Use scrape_profiles when user asks for people, experts, or LinkedIn profiles
 - Format responses with markdown: bold key points, use bullet lists, use code blocks for code
-- Be clear, confident, and practical — never robotic
+- Be clear, confident, and practical - never robotic
 - If unsure, say so clearly and suggest how the user can verify`;
 
 
@@ -78,7 +78,14 @@ Rules:
   const [editText, setEditText] = useState("");
   const [resume, setResume] = useState(null);
   const [chatDocuments, setChatDocuments] = useState([]);
-  const [atsData, setAtsData] = useState(null);
+  const [atsData, setAtsData] = useState(() => {
+    // Restore last ATS result from localStorage
+    try {
+      const saved = localStorage.getItem('jobflow_ats_last_result');
+      if (saved) return JSON.parse(saved).result;
+    } catch {}
+    return null;
+  });
   const [atsLoading, setAtsLoading] = useState(false);
   const [jobDesc, setJobDesc] = useState("");
   const [showJD, setShowJD] = useState(false);
@@ -134,7 +141,7 @@ Rules:
     window.speechSynthesis.cancel();
     const clean = text.replace(/[#*`>_~[\]()]/g, '').replace(/\n+/g, ' ').slice(0, 600);
     const utt = new SpeechSynthesisUtterance(clean);
-    utt.rate = 1.05; utt.pitch = 1; utt.lang = 'en-US';
+    utt.rate = 1.45; utt.pitch = 1; utt.lang = 'en-US';
     const voices = window.speechSynthesis.getVoices();
     const preferred = voices.find(v => v.name.includes('Google') || v.lang === 'en-US');
     if(preferred) utt.voice = preferred;
@@ -161,7 +168,12 @@ Rules:
 
   const handleAnalyze = async () => {
     if(!resume) return; setAtsLoading(true); setAtsData(null);
-    try { setAtsData(await analyzeATS(resume.text, jobDesc)); } catch(e) { alert("Analysis error: " + e.message); }
+    try {
+      const result = await analyzeATS(resume.text, jobDesc);
+      setAtsData(result);
+      // Persist to localStorage so result survives page refresh
+      try { localStorage.setItem('jobflow_ats_last_result', JSON.stringify({ result, resumeName: resume.name, analyzedAt: new Date().toISOString() })); } catch {}
+    } catch(e) { alert("Analysis error: " + e.message); }
     finally { setAtsLoading(false); }
   };
 
@@ -202,7 +214,7 @@ Rules:
     const next = [...messages, userMsg];
     updateMessages(next);
     if(!overrideText) setInput("");
-    setLoading(true); setStatus("CareerAI is thinking…");
+    setLoading(true); setStatus("CareerAI is thinking...");
 
     if(messages.length === 0) {
       setSessions(prev => {
@@ -298,9 +310,13 @@ Rules:
           </div>
           <div className="cb-header-actions">
             {jobDesc && <span className="jd-badge">✓ JD Active</span>}
-            <button className="btn btn-ghost btn-sm" onClick={() => setShowJD(!showJD)} title="Job Description" style={{padding:"6px 10px"}}>📋</button>
-            <button className="btn btn-ghost btn-sm" onClick={() => setVoiceOn(p => !p)} title={voiceOn ? "Voice ON" : "Voice OFF"} style={{padding:"6px 10px"}}>{voiceOn ? "🔊" : "🔇"}</button>
-            {messages.length > 0 && <button className="btn btn-ghost btn-sm" onClick={exportChat} title="Export chat" style={{padding:"6px 10px"}}>📥</button>}
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowJD(!showJD)} style={{padding:"6px 12px", fontSize:12, gap:5}}>
+              📋 {showJD ? "Hide JD" : "Add JD"}
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setVoiceOn(p => !p)} style={{padding:"6px 12px", fontSize:12, gap:5, color: voiceOn ? "var(--accent-emerald)" : undefined}}>
+              {voiceOn ? "🔊 Voice On" : "🔇 Voice Off"}
+            </button>
+            {messages.length > 0 && <button className="btn btn-ghost btn-sm" onClick={exportChat} style={{padding:"6px 12px", fontSize:12, gap:5}}>📥 Export</button>}
           </div>
         </div>
 
@@ -310,11 +326,12 @@ Rules:
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
               <label style={{fontSize:11,fontWeight:700,color:"var(--text-muted)",letterSpacing:"0.08em"}}>JOB DESCRIPTION</label>
               <div style={{display:"flex",gap:6}}>
-                <button className="btn btn-sm btn-secondary" onClick={() => jdFileRef.current?.click()} style={{padding:"4px 10px",fontSize:11}}>📎 Upload</button>
-                {jobDesc && <button className="btn btn-sm btn-danger" onClick={() => setJobDesc("")} style={{padding:"4px 10px",fontSize:11}}>Clear</button>}
+                <button className="btn btn-sm btn-secondary" onClick={() => jdFileRef.current?.click()} style={{padding:"4px 12px",fontSize:11}}>📎 Upload JD File</button>
+                {jobDesc && <button className="btn btn-sm btn-danger" onClick={() => setJobDesc("")} style={{padding:"4px 10px",fontSize:11}}>✕ Clear</button>}
               </div>
             </div>
-            <textarea value={jobDesc} onChange={e => setJobDesc(e.target.value)} placeholder="Paste job description here for context-aware responses…" rows={4} />
+            <textarea value={jobDesc} onChange={e => setJobDesc(e.target.value)} placeholder="Paste the job description here - AI will tailor responses to this role..." rows={4} />
+            <div style={{fontSize:11,color:"var(--text-muted)",marginTop:4}}>Tip: Adding a JD makes resume analysis and interview prep much more accurate.</div>
             <input ref={jdFileRef} type="file" accept=".pdf,.txt,.doc,.docx" style={{display:"none"}} onChange={e => handleJDFile(e.target.files[0])} />
           </div>
         )}
@@ -396,9 +413,15 @@ Rules:
                 </div>
               )}
             <div className="cb-input-row">
-              <button className={`cb-icon-btn ${listening ? "active-mic" : ""}`} onClick={toggleListen} title="Voice input">🎤</button>
-              <button className="cb-icon-btn" onClick={() => fileRef.current?.click()} title="Upload document">📎</button>
-              <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={onKey} disabled={loading} placeholder="Ask anything… (Enter to send)" rows={1} />
+              <button className={`cb-icon-btn ${listening ? "active-mic" : ""}`} onClick={toggleListen} title="Voice input" style={{minWidth:44, fontSize:11, flexDirection:"column", gap:2}}>
+                🎤
+                <span style={{fontSize:9, color:"var(--text-muted)"}}>Voice</span>
+              </button>
+              <button className="cb-icon-btn" onClick={() => fileRef.current?.click()} title="Upload document" style={{minWidth:44, fontSize:11, flexDirection:"column", gap:2}}>
+                📎
+                <span style={{fontSize:9, color:"var(--text-muted)"}}>Attach</span>
+              </button>
+              <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={onKey} disabled={loading} placeholder="Ask anything... (Enter to send)" rows={1} />
               <button className={`cb-send-btn ${input.trim() && !loading ? "active" : ""}`} onClick={() => sendMessage()} disabled={!input.trim() || loading}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
@@ -464,7 +487,7 @@ Rules:
             )}
             {resume && (
               <button className="btn btn-primary" onClick={handleAnalyze} disabled={atsLoading} style={{marginBottom:28}}>
-                {atsLoading ? "⏳ Analyzing…" : "⚡ Analyze Resume"}
+                {atsLoading ? "⏳ Analyzing..." : "⚡ Analyze Resume"}
               </button>
             )}
             {atsData && (
@@ -503,7 +526,7 @@ Rules:
             <h2 style={{fontSize:22,fontWeight:700,color:"var(--text-primary)",marginBottom:4}}>Course Finder</h2>
             <p style={{fontSize:13,color:"var(--text-muted)",marginBottom:24}}>Search Udemy & Coursera for any skill or topic.</p>
             <div className="cb-course-search">
-              <input value={courseQuery} onChange={e => setCourseQuery(e.target.value)} onKeyDown={e => e.key==="Enter" && handleFindCourses()} placeholder="e.g. Machine Learning, React, Data Science…" />
+              <input value={courseQuery} onChange={e => setCourseQuery(e.target.value)} onKeyDown={e => e.key==="Enter" && handleFindCourses()} placeholder="e.g. Machine Learning, React, Data Science..." />
               <button className="btn btn-primary" onClick={handleFindCourses} disabled={!courseQuery.trim() || courseLoading}>{courseLoading ? "⏳ Searching" : "🔍 Search"}</button>
             </div>
             {courses.length === 0 && !courseLoading && (
@@ -526,7 +549,7 @@ Rules:
                   <a key={i} href={c.url} target="_blank" rel="noopener noreferrer" className="cb-course-card">
                     <span className={`badge ${c.platform==="Udemy" ? "badge-interviewed" : "badge-reviewing"}`} style={{marginBottom:8,display:"inline-block"}}>{c.platform}</span>
                     <div style={{fontSize:13,fontWeight:600,color:"var(--text-primary)",lineHeight:1.4,marginBottom:6}}>{c.title}</div>
-                    {c.content && <div style={{fontSize:11,color:"var(--text-muted)",lineHeight:1.5}}>{c.content.slice(0,120)}…</div>}
+                    {c.content && <div style={{fontSize:11,color:"var(--text-muted)",lineHeight:1.5}}>{c.content.slice(0,120)}...</div>}
                     <div style={{marginTop:8,fontSize:11,color:"var(--accent-primary-light)",display:"flex",alignItems:"center",gap:4}}>View Course →</div>
                   </a>
                 ))}

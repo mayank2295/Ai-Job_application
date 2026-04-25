@@ -20,7 +20,7 @@ export default function MyApplicationsPage() {
   const [apps, setApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [boardView, setBoardView] = useState(false);
-  const statuses = ['pending', 'reviewing', 'interviewed', 'accepted', 'rejected'];
+  const statuses = ['pending', 'reviewing', 'shortlisted', 'interviewed', 'accepted', 'rejected'];
   const grouped = statuses.reduce((acc: any, s) => ({ ...acc, [s]: apps.filter((a) => a.status === s) }), {});
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function MyApplicationsPage() {
           <button className="btn btn-primary" onClick={() => navigate('/jobs')}>View Jobs</button>
         </div>
       ) : boardView ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 10 }}>
           {statuses.map((status) => {
             const cfg = STATUS_CONFIG[status];
             return (

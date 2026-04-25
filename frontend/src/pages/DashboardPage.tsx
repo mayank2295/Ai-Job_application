@@ -1,24 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FileText,
-  Clock,
-  Eye,
-  UserCheck,
-  UserX,
-  Zap,
-  TrendingUp,
-  ArrowRight,
-  Sparkles,
+  FileText, Clock, Eye, UserCheck, UserX, Zap, TrendingUp, ArrowRight, Sparkles,
 } from 'lucide-react';
 import { api } from '../api/client';
 import type { Application, DashboardStats, WorkflowStats } from '../types';
+
+const API_BASE = (import.meta.env.VITE_API_BASE_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3001/api' : 'https://ai-job-application-1.onrender.com/api')).replace(/\/$/, '');
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentApps, setRecentApps] = useState<Application[]>([]);
   const [workflowStats, setWorkflowStats] = useState<WorkflowStats[]>([]);
+  const [topCandidates, setTopCandidates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,10 +22,14 @@ export default function DashboardPage() {
 
   const loadDashboard = async () => {
     try {
-      const data = await api.getStats();
-      setStats(data.stats);
-      setRecentApps(data.recentActivity || []);
-      setWorkflowStats(data.workflowStats || []);
+      const [statsData, topData] = await Promise.all([
+        api.getStats(),
+        fetch(`${API_BASE}/admin/top-candidates`).then(r => r.json()).catch(() => ({ candidates: [] })),
+      ]);
+      setStats(statsData.stats);
+      setRecentApps(statsData.recentActivity || []);
+      setWorkflowStats(statsData.workflowStats || []);
+      setTopCandidates(topData.candidates || []);
     } catch (err) {
       console.error('Failed to load dashboard:', err);
     } finally {
@@ -210,25 +209,49 @@ export default function DashboardPage() {
             <div className="ai-analysis-card">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                 <Sparkles size={18} color="var(--accent-secondary)" />
-                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>AI Analysis</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Avg AI Score</span>
               </div>
-              <div className="ai-score-circle">
-                {Math.round(stats.avg_ai_score)}
-              </div>
-              <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
-                Average Match Score
-              </div>
+              <div className="ai-score-circle">{Math.round(stats.avg_ai_score)}</div>
+              <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>Average Match Score</div>
             </div>
           )}
 
-          <div className="card" style={{ background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <TrendingUp size={18} color="var(--accent-emerald)" />
-              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--accent-emerald)' }}>Quick Tip</span>
+          {/* Top Candidates */}
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <TrendingUp size={18} color="#7C3AED" />
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Top Candidates</span>
             </div>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              Configure your Power Automate URLs in Settings to enable automatic email confirmations and HR notifications.
-            </p>
+            {topCandidates.length === 0 ? (
+              <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No AI-scored applications yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {topCandidates.map((c, i) => (
+                  <div key={c.id}
+                    onClick={() => navigate(`/admin/applications/${c.id}`)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '6px 0', borderBottom: i < topCandidates.length - 1 ? '1px solid var(--border-primary)' : 'none' }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                      background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'white',
+                    }}>
+                      {c.full_name?.[0]?.toUpperCase() || '?'}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.full_name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.position}</div>
+                    </div>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 800, color: 'white', flexShrink: 0,
+                      background: c.ai_score >= 80 ? 'var(--accent-emerald)' : c.ai_score >= 60 ? 'var(--accent-amber)' : 'var(--accent-rose)',
+                    }}>
+                      {Math.round(c.ai_score)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

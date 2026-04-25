@@ -46,9 +46,6 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ status, notes }),
     }),
-  getAdminKanban: () =>
-    request<Record<string, any[]>>('/admin/applications/kanban'),
-
   deleteApplication: (id: string) =>
     request<{ message: string }>(`/applications/${id}`, { method: 'DELETE' }),
 
@@ -101,7 +98,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ messages }),
     }),
-  startInterview: (payload: { jobId: string; resumeText: string; candidateId?: string }) =>
+  startInterview: (payload: { jobId?: string; resumeText: string; candidateId?: string }) =>
     fetch(`${API_BASE}/ai/interview/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -130,10 +127,5 @@ export const api = {
     request<{ passed: boolean; score: number; correctAnswers: number[]; explanations: string[] }>('/ai/skill-quiz/submit', {
       method: 'POST',
       body: JSON.stringify(payload),
-    }),
-  optimizeLinkedin: (resumeText: string, targetRole: string) =>
-    request<{ headline: string; aboutSection: string; topSkills: string[]; tips: string[] }>('/ai/linkedin-optimizer', {
-      method: 'POST',
-      body: JSON.stringify({ resumeText, targetRole }),
     }),
 };

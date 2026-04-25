@@ -157,38 +157,38 @@ router.post('/', upload.single('resume'), async (req: Request, res: Response): P
     const id = uuidv4();
     const now = new Date().toISOString();
 
-    // Handle resume file
+    // Handle resume file — upload to Cloudinary in background, save locally as fallback
     let resumeFilename: string | null = null;
     let resumePath: string | null = null;
     if (req.file) {
       resumeFilename = req.file.originalname;
+      // Save locally first so submission is instant
       const safeFilename = `${id}-${req.file.originalname}`;
       resumePath = `/uploads/${safeFilename}`;
       const uploadDir = path.join(process.cwd(), 'uploads');
       if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
       fs.writeFileSync(path.join(uploadDir, safeFilename), req.file.buffer);
+
+      // Upload to Cloudinary in background and update path
+      const fileBuffer = req.file.buffer;
+      const originalName = req.file.originalname;
+      (async () => {
+        try {
+          const { uploadResume } = await import('../services/cloudinaryStorage');
+          const { url } = await uploadResume(fileBuffer, originalName, id);
+          await run(`UPDATE applications SET resume_path=$1, updated_at=$2 WHERE id=$3`, [url, new Date().toISOString(), id]);
+          console.log(`✅ Resume uploaded to Cloudinary for application ${id}`);
+        } catch (e) {
+          console.error('Background Cloudinary upload error:', e);
+        }
+      })();
     }
 
-    // AI Analysis (async, don't block)
+    // AI Analysis — run in background AFTER responding so submission is instant
     let aiScore: number | null = null;
     let aiSkills = '';
     let aiMissingSkills = '';
     let aiAnalysis = '';
-    if (resume_text && job_description) {
-      try {
-        const prompt = `You are an expert ATS resume analyst.\nJob Description:\n${String(job_description).slice(0, 800)}\n\nResume:\n${String(resume_text).slice(0, 3500)}\n\nReturn ONLY raw JSON: {"overall_score":<0-100>,"top_skills":[],"missing_keywords":[],"summary":"<2 sentences>"}`;
-        const data: any = await callLLM([
-          { role: 'system', content: 'You are an ATS expert. Respond ONLY with valid JSON.' },
-          { role: 'user', content: prompt },
-        ]);
-        const raw = data.choices[0].message.content.replace(/```json|```/g, '').trim();
-        const parsed = JSON.parse(raw);
-        aiScore = parsed.overall_score || null;
-        aiSkills = JSON.stringify(parsed.top_skills || []);
-        aiMissingSkills = JSON.stringify(parsed.missing_keywords || []);
-        aiAnalysis = parsed.summary || '';
-      } catch(e) { console.error('AI analysis error:', e); }
-    }
 
     const insertResult = await query(`
       INSERT INTO applications
@@ -215,7 +215,37 @@ router.post('/', upload.single('resume'), async (req: Request, res: Response): P
         .catch(err => console.error('Background flow trigger error:', err));
     }
 
+    // Respond immediately — don't wait for AI
     res.status(201).json({ application, message: 'Application submitted successfully!' });
+
+    // Run AI analysis in background after response is sent
+    if (resume_text && (job_description || position)) {
+      (async () => {
+        try {
+          const prompt = `You are an expert ATS resume analyst.\n${job_description ? `Job Description:\n${String(job_description).slice(0, 800)}\n\n` : `Position: ${position}\n\n`}Resume:\n${String(resume_text).slice(0, 3500)}\n\nReturn ONLY raw JSON: {"overall_score":<0-100>,"top_skills":[],"missing_keywords":[],"summary":"<2 sentences about fit and key gaps>"}`;
+          const data: any = await callLLM([
+            { role: 'system', content: 'You are an ATS expert. Respond ONLY with valid JSON.' },
+            { role: 'user', content: prompt },
+          ]);
+          const raw = data.choices[0].message.content.replace(/```json|```/g, '').trim();
+          const parsed = JSON.parse(raw);
+          await run(
+            `UPDATE applications SET ai_score=$1, ai_skills=$2, ai_missing_skills=$3, ai_analysis=$4, updated_at=$5 WHERE id=$6`,
+            [
+              parsed.overall_score || null,
+              JSON.stringify(parsed.top_skills || []),
+              JSON.stringify(parsed.missing_keywords || []),
+              parsed.summary || '',
+              new Date().toISOString(),
+              id,
+            ]
+          );
+          console.log(`✅ AI analysis complete for application ${id}: score=${parsed.overall_score}`);
+        } catch (e) {
+          console.error('Background AI analysis error:', e);
+        }
+      })();
+    }
   } catch (error: any) {
     console.error('Error creating application:', error);
     res.status(500).json({ error: error?.message || 'Failed to create application', stack: error?.stack });
@@ -278,6 +308,54 @@ router.patch(
   } catch (error: any) {
     console.error('Error updating status:', error);
     res.status(500).json({ error: 'Failed to update status' });
+  }
+});
+
+// POST /api/applications/:id/analyze — trigger AI analysis on demand
+router.post('/:id/analyze', async (req: Request, res: Response) => {
+  try {
+    const application = await get<any>('SELECT * FROM applications WHERE id = $1', [req.params.id]);
+    if (!application) { res.status(404).json({ error: 'Application not found' }); return; }
+
+    // Get job description if linked
+    let jobDesc = '';
+    if (application.job_id) {
+      const job = await get<any>('SELECT description, requirements FROM jobs WHERE id = $1', [application.job_id]);
+      if (job) jobDesc = `${job.description}\n${job.requirements || ''}`;
+    }
+
+    // Use resume path as text hint — we don't have the raw text after upload
+    // so we analyze based on position + any stored ai_skills as context
+    const resumeContext = application.ai_skills
+      ? `Candidate skills: ${application.ai_skills}. Position applied: ${application.position}. Experience: ${application.experience_years} years.`
+      : `Position applied: ${application.position}. Experience: ${application.experience_years} years. Name: ${application.full_name}.`;
+
+    const prompt = `You are an expert ATS resume analyst.
+${jobDesc ? `Job Description:\n${jobDesc.slice(0, 800)}\n\n` : ''}Candidate Info:\n${resumeContext}
+
+Return ONLY raw JSON (no markdown): {"overall_score":<0-100>,"top_skills":["..."],"missing_keywords":["..."],"summary":"<2-3 sentences about fit and gaps>"}`;
+
+    const data: any = await callLLM([
+      { role: 'system', content: 'You are an ATS expert. Respond ONLY with valid JSON.' },
+      { role: 'user', content: prompt },
+    ]);
+    const raw = data.choices[0].message.content.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(raw);
+
+    const aiScore = parsed.overall_score || null;
+    const aiSkills = JSON.stringify(parsed.top_skills || []);
+    const aiMissingSkills = JSON.stringify(parsed.missing_keywords || []);
+    const aiAnalysis = parsed.summary || '';
+
+    await run(
+      `UPDATE applications SET ai_score = $1, ai_skills = $2, ai_missing_skills = $3, ai_analysis = $4, updated_at = $5 WHERE id = $6`,
+      [aiScore, aiSkills, aiMissingSkills, aiAnalysis, new Date().toISOString(), req.params.id]
+    );
+
+    res.json({ ai_score: aiScore, ai_skills: aiSkills, ai_missing_skills: aiMissingSkills, ai_analysis: aiAnalysis });
+  } catch (error: any) {
+    console.error('On-demand analysis error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
