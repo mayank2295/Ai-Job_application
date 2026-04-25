@@ -58,23 +58,41 @@ router.post('/upload/:applicationId', upload.single('resume'), async (req: Reque
 });
 
 // GET /api/resumes/:applicationId/download
-// Since Cloudinary URLs are direct HTTPS links, just redirect to the stored URL
 router.get('/:applicationId/download', async (req: Request, res: Response) => {
   try {
     const application = await get('SELECT * FROM applications WHERE id = $1', [req.params.applicationId]) as any;
 
     if (!application || !application.resume_path) {
-      res.status(404).json({ error: 'Resume not found' });
+      res.status(404).json({ error: 'Resume not found for this application' });
       return;
     }
 
-    // Cloudinary URL — redirect directly
-    if (application.resume_path.startsWith('http')) {
-      res.redirect(application.resume_path);
+    const resumePath: string = application.resume_path;
+
+    // New resumes: Cloudinary URL — redirect directly
+    if (resumePath.startsWith('http://') || resumePath.startsWith('https://')) {
+      res.redirect(resumePath);
       return;
     }
 
-    res.status(404).json({ error: 'Resume file not available' });
+    // Legacy resumes: local disk path like /uploads/filename.pdf
+    const fs = await import('fs');
+    const absolutePath = path.join(process.cwd(), resumePath);
+    if (fs.existsSync(absolutePath)) {
+      res.download(absolutePath, application.resume_filename || path.basename(absolutePath));
+      return;
+    }
+
+    // Try uploads folder directly by filename
+    if (application.resume_filename) {
+      const byName = path.join(process.cwd(), 'uploads', application.resume_filename);
+      if (fs.existsSync(byName)) {
+        res.download(byName, application.resume_filename);
+        return;
+      }
+    }
+
+    res.status(404).json({ error: 'Resume file not found. It may have been uploaded before cloud storage was configured.' });
   } catch (error: any) {
     console.error('Resume download error:', error);
     res.status(500).json({ error: 'Failed to download resume' });

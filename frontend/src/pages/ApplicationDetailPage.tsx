@@ -222,9 +222,7 @@ export default function ApplicationDetailPage() {
                 <FileText size={18} />
                 <span className="file-name">{application.resume_filename}</span>
                 <a
-                  href={application.resume_path?.startsWith('http')
-                    ? application.resume_path
-                    : `${import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'https://ai-job-application-1.onrender.com/api'}/resumes/${application.id}/download`}
+                  href={`${(import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'https://ai-job-application-1.onrender.com/api')}/resumes/${application.id}/download`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-ghost btn-sm"
