@@ -3462,3 +3462,343 @@ tbody tr:last-child td {
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
+
+/* ═══════════════════════════════════════════════════════════
+   UI OVERHAUL — Targeted Enhancements
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Typography scale ── */
+h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; color: var(--text-primary); }
+h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; color: var(--text-primary); }
+h3 { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+h4 { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+
+/* ── Page container padding on large screens ── */
+@media (min-width: 1024px) {
+  .page-container { padding: 28px 32px; }
+}
+
+/* ── Sidebar active item — stronger purple fill ── */
+.sidebar-link.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--accent-primary-light);
+  font-weight: 600;
+}
+.sidebar-link:hover {
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--text-primary);
+}
+
+/* ── Sidebar section title spacing ── */
+.sidebar-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  padding: 18px 14px 6px;
+  display: block;
+}
+
+/* ── Sidebar footer separator ── */
+.sidebar-footer {
+  border-top: 1px solid var(--border-primary);
+  padding: 12px 10px 16px;
+}
+
+/* ── Navbar height and title ── */
+.navbar { height: 64px; }
+.navbar-page-title { font-size: 17px; font-weight: 600; }
+.main-content { padding-top: 64px; }
+
+/* ── Card improvements ── */
+.card {
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  transition: box-shadow 200ms ease, border-color 200ms ease, transform 200ms ease;
+}
+.card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+/* ── Button height standardization ── */
+.btn { height: 40px; padding: 0 18px; border-radius: 8px; font-size: 13.5px; }
+.btn-sm { height: 32px; padding: 0 14px; font-size: 12px; }
+.btn-lg { height: 48px; padding: 0 28px; font-size: 15px; }
+.btn-icon { width: 40px; height: 40px; padding: 0; }
+
+/* ── Primary button — solid purple ── */
+.btn-primary {
+  background: #7C3AED;
+  color: white;
+  border: none;
+  box-shadow: 0 2px 8px rgba(124,58,237,0.3);
+}
+.btn-primary:hover {
+  background: #6D28D9;
+  box-shadow: 0 4px 16px rgba(124,58,237,0.45);
+  transform: translateY(-1px);
+}
+.btn-primary:active { transform: translateY(0); box-shadow: none; }
+
+/* ── Secondary button ── */
+.btn-secondary {
+  background: transparent;
+  color: #7C3AED;
+  border: 1.5px solid #7C3AED;
+}
+.btn-secondary:hover {
+  background: rgba(124,58,237,0.08);
+  border-color: #6D28D9;
+}
+
+/* ── Danger button ── */
+.btn-danger {
+  background: transparent;
+  color: var(--accent-rose);
+  border: 1.5px solid var(--accent-rose);
+}
+.btn-danger:hover {
+  background: rgba(244,63,94,0.1);
+}
+
+/* ── Input fields — 44px height ── */
+.form-input, .form-select, input[type="text"], input[type="email"],
+input[type="tel"], input[type="number"], input[type="password"] {
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  border: 1.5px solid var(--border-primary);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.form-input:focus, input[type="text"]:focus, input[type="email"]:focus,
+input[type="tel"]:focus, input[type="number"]:focus, input[type="password"]:focus {
+  border-color: #7C3AED;
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+}
+textarea {
+  border-radius: 8px;
+  border: 1.5px solid var(--border-primary);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  padding: 12px 16px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+textarea:focus {
+  border-color: #7C3AED;
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+}
+
+/* ── Table — alternating rows ── */
+tbody tr:nth-child(even) {
+  background: rgba(255,255,255,0.015);
+}
+:root[data-theme='light'] tbody tr:nth-child(even) {
+  background: rgba(79,70,229,0.025);
+}
+th { font-size: 11px; font-weight: 700; letter-spacing: 0.8px; }
+td { font-size: 13.5px; }
+
+/* ── Status badges — pill style ── */
+.badge {
+  border-radius: 24px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+/* ── Page hero section for AI tool pages ── */
+.page-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding: 20px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  border-left: 4px solid #7C3AED;
+}
+.page-hero-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(124,58,237,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 22px;
+}
+.page-hero-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.page-hero-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ── Job board — grid layout ── */
+.job-board-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+.job-board-card {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 12px;
+  transition: all 200ms ease;
+}
+.job-board-card:hover {
+  border-color: #7C3AED;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(124,58,237,0.12);
+}
+.job-board-card-title { font-size: 16px; font-weight: 700; }
+.job-board-job-type {
+  border-radius: 24px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ── Stats cards — icon on left ── */
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+}
+.stat-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+.stat-card-value { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+.stat-card-label { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+/* ── Section headers inside cards ── */
+.card-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* ── Dark mode specific overrides ── */
+:root {
+  --bg-primary: #0F0F13;
+  --bg-secondary: #1A1A24;
+  --bg-tertiary: #252535;
+  --bg-card: rgba(26, 26, 36, 0.9);
+  --text-primary: #F1F1F3;
+  --text-muted: #9999AA;
+  --border-primary: rgba(255,255,255,0.07);
+}
+
+/* ── Light mode overrides ── */
+:root[data-theme='light'] {
+  --bg-primary: #F4F7FF;
+  --bg-secondary: #EEF2FF;
+  --bg-tertiary: #E3E9FF;
+  --bg-card: rgba(255,255,255,0.92);
+  --text-primary: #0F172A;
+  --text-muted: #64748B;
+  --border-primary: rgba(15,23,42,0.1);
+}
+
+/* ── Pagination ── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding: 0 4px;
+}
+.pagination-info {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.pagination-controls {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.pagination-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 200ms ease;
+  font-family: inherit;
+}
+.pagination-btn:hover:not(:disabled) {
+  border-color: #7C3AED;
+  color: #7C3AED;
+}
+.pagination-btn.active {
+  background: #7C3AED;
+  border-color: #7C3AED;
+  color: white;
+  font-weight: 700;
+}
+.pagination-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Notification bell badge ── */
+.notification-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-rose);
+  border: 2px solid var(--bg-primary);
+}
+
+/* ── Mobile responsiveness additions ── */
+@media (max-width: 768px) {
+  .job-board-grid {
+    grid-template-columns: 1fr;
+  }
+  .stat-card {
+    padding: 16px;
+  }
+  .page-hero {
+    padding: 16px;
+  }
+  .page-hero-title { font-size: 17px; }
+}
