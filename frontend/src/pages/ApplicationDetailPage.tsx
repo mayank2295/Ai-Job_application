@@ -282,15 +282,17 @@ export default function ApplicationDetailPage() {
                     ))}
                   </div>
                 )}
+                <button className="btn btn-ghost btn-sm" onClick={analyzeNow} disabled={analyzing} style={{ marginTop: 10, width: '100%', justifyContent: 'center' }}>
+                  <RefreshCw size={13} /> {analyzing ? 'Re-analyzing...' : 'Re-analyze'}
+                </button>
               </>
             ) : (
-              <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>
-                  No AI analysis available yet
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  Configure Power Automate with AI Builder to enable resume analysis
-                </div>
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>No AI analysis yet</div>
+                <button className="btn btn-primary btn-sm" onClick={analyzeNow} disabled={analyzing} style={{ width: '100%', justifyContent: 'center' }}>
+                  <Sparkles size={14} /> {analyzing ? 'Analyzing...' : 'Analyze Now'}
+                </button>
+                {analyzing && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>This may take 10-15 seconds...</div>}
               </div>
             )}
           </div>
