@@ -60,7 +60,7 @@ router.post('/resume-analyzed', webhookAuth, async (req: Request, res: Response)
 router.post('/status-update', webhookAuth, async (req: Request, res: Response) => {
   try {
     const { applicationId, status, notes } = req.body;
-    const validStatuses = ['pending', 'reviewing', 'interviewed', 'accepted', 'rejected'];
+    const validStatuses = ['pending', 'reviewing', 'shortlisted', 'interviewed', 'accepted', 'rejected'];
 
     if (!applicationId || !status || !validStatuses.includes(status)) {
       res.status(400).json({ error: 'Valid applicationId and status are required' });

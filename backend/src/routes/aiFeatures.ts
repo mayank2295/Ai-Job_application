@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { all, get, run } from '../database/db';
 import { callLLM } from './careerbot';
+import { recalculateReputation } from '../services/reputationService';
 
 const router = Router();
 
@@ -140,6 +141,13 @@ router.post('/interview/answer', async (req: Request, res: Response): Promise<vo
           improvements: parsed.improvements ?? [],
           cvEnhancements: parsed.cvEnhancements ?? [],
         });
+
+        // Recalculate reputation in background after interview completes
+        if (session.candidate_id) {
+          recalculateReputation(session.candidate_id).catch((err) =>
+            console.error('Reputation recalc after interview failed:', err)
+          );
+        }
         return;
       } catch {
         // Not valid JSON — fall through to treat as next question
@@ -300,6 +308,11 @@ router.post('/skill-quiz/submit', async (req: Request, res: Response): Promise<v
 
     await run('UPDATE pending_quizzes SET used = TRUE WHERE token = $1', [quizToken]);
     res.json({ passed, score, correctAnswers, explanations });
+
+    // Recalculate reputation in background after quiz
+    recalculateReputation(resolvedCandidateId).catch((err) =>
+      console.error('Reputation recalc after quiz failed:', err)
+    );
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

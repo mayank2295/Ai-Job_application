@@ -8,6 +8,7 @@ import { PowerAutomateService } from '../services/powerAutomate';
 import { callLLM } from './careerbot';
 import { body, validationResult } from 'express-validator';
 import { sendStatusUpdateEmail } from '../services/emailService';
+import { notifyUser, notifyCompany } from '../services/socketService';
 
 const router = Router();
 
@@ -302,7 +303,22 @@ router.patch(
         [existing.user_id, 'Application Update', `Your application for ${existing.position} ${label}.`,
           status === 'accepted' ? 'success' : status === 'rejected' ? 'error' : 'info']
       ).catch(() => {});
+
+      // Real-time WebSocket notification to candidate
+      notifyUser(existing.user_id, 'application_status_update', {
+        applicationId: req.params.id,
+        newStatus: status,
+        position: existing.position,
+        message: `Your application for ${existing.position} ${label}.`,
+      });
     }
+
+    // Notify company room (other admins watching live feed)
+    notifyCompany('default-company-001', 'application_updated', {
+      applicationId: req.params.id,
+      status,
+      candidateName: existing.full_name,
+    });
 
     res.json({ application: updated, message: 'Status updated successfully' });
   } catch (error: any) {

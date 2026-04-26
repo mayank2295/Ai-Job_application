@@ -2,7 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import { createServer } from 'http';
 import { initializeDatabase } from './database/db';
+import { initSocketServer } from './services/socketService';
 
 // Load environment variables
 dotenv.config();
@@ -18,6 +20,11 @@ import usersRoutes from './routes/users';
 import jobsRoutes from './routes/jobs';
 import aiFeaturesRoutes from './routes/aiFeatures';
 import adminRoutes from './routes/admin';
+import healthRoutes from './routes/health';
+import gdprRoutes from './routes/gdpr';
+import billingRoutes from './routes/billing';
+import searchRoutes from './routes/search';
+import { generalLimiter, aiLimiter, authLimiter, heavyAILimiter } from './middleware/rateLimiter';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -35,6 +42,16 @@ app.use(express.urlencoded({ extended: true }));
 // Static file serving for uploaded resumes
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+// Health routes (before rate limiter so they're never blocked)
+app.use('/api/health', healthRoutes);
+
+// Rate limiting
+app.use('/api', generalLimiter);
+app.use('/api/careerbot', aiLimiter);
+app.use('/api/ai', aiLimiter);
+app.use('/api/ai/cover-letter', heavyAILimiter);
+app.use('/api/users/sync', authLimiter);
+
 // API Routes
 app.use('/api/applications', applicationRoutes);
 app.use('/api/resumes', resumeRoutes);
@@ -45,6 +62,9 @@ app.use('/api/users', usersRoutes);
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/ai', aiFeaturesRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/gdpr', gdprRoutes);
+app.use('/api/billing', billingRoutes);
+app.use('/api/search', searchRoutes);
 
 // Root message
 app.get('/', (_req, res) => {
@@ -86,15 +106,17 @@ app.get('/api', (_req, res) => {
 // Initialize database and start server
 initializeDatabase()
   .then(() => {
-    app.listen(PORT, () => {
+    const httpServer = createServer(app);
+    initSocketServer(httpServer);
+    httpServer.listen(PORT, () => {
       console.log('');
       console.log('🚀 ═══════════════════════════════════════════════════');
-      console.log(`   Job Application Automation API`);
+      console.log(`   JobFlow AI API`);
       console.log(`   Server running on http://localhost:${PORT}`);
       console.log('   ───────────────────────────────────────────────────');
-      console.log(`   📋 API Docs:     http://localhost:${PORT}/api`);
-      console.log(`   💚 Health:       http://localhost:${PORT}/api/health`);
-      console.log(`   🔗 Webhook URL:  http://localhost:${PORT}/api/webhooks/`);
+      console.log(`   💚 Health:    http://localhost:${PORT}/api/health`);
+      console.log(`   📊 Detailed:  http://localhost:${PORT}/api/health/detailed`);
+      console.log(`   🔌 WebSocket: enabled`);
       console.log('═══════════════════════════════════════════════════════');
       console.log('');
     });

@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useRealTimeNotifications, useReputationUpdates } from '../hooks/useSocket';
 
 const API_BASE = (
   import.meta.env.VITE_API_BASE_URL?.trim() ||
@@ -51,6 +52,34 @@ export default function NotificationBell() {
       setNotifications(data.notifications || []);
     } catch {}
   };
+
+  // Real-time: instantly add notification when socket fires
+  const handleRealTime = useCallback((data: any) => {
+    setNotifications(prev => [{
+      id: Date.now().toString(),
+      title: 'Application Update',
+      message: data.message || `Your application for ${data.position} has been updated to: ${data.newStatus}`,
+      type: data.newStatus === 'accepted' ? 'success' : data.newStatus === 'rejected' ? 'error' : 'info',
+      is_read: false,
+      created_at: new Date().toISOString(),
+    }, ...prev]);
+  }, []);
+
+  useRealTimeNotifications(handleRealTime);
+
+  // Real-time: reputation score updated after quiz/interview
+  const handleReputationUpdate = useCallback((data: any) => {
+    setNotifications(prev => [{
+      id: Date.now().toString(),
+      title: 'Reputation Updated',
+      message: `Your reputation score has been updated to ${data.score ?? ''}`,
+      type: 'success',
+      is_read: false,
+      created_at: new Date().toISOString(),
+    }, ...prev]);
+  }, []);
+
+  useReputationUpdates(handleReputationUpdate);
 
   useEffect(() => {
     load();

@@ -32,6 +32,7 @@ import MyApplicationsPage from './pages/MyApplicationsPage';
 import ProfilePage from './pages/ProfilePage';
 import InterviewPage from './pages/InterviewPage';
 import SkillAssessmentPage from './pages/SkillAssessmentPage';
+import BillingPage from './pages/BillingPage';
 function AppLayout({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -154,6 +155,11 @@ export default function App() {
         <Route path="/web-search" element={
           <ProtectedRoute requiredRole="candidate">
             <AppLayout><WebSearchPage /></AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/billing" element={
+          <ProtectedRoute>
+            <AppLayout><BillingPage /></AppLayout>
           </ProtectedRoute>
         } />
 

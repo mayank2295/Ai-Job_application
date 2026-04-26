@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { get, run, query } from '../database/db';
 import { v4 as uuidv4 } from 'uuid';
 import { sendWelcomeEmail } from '../services/emailService';
+import { recalculateReputation } from '../services/reputationService';
+import { auditLog } from '../middleware/auditLog';
 
 const router = Router();
 const ADMIN_EMAIL = 'mayankgupta23081@gmail.com';
@@ -75,7 +77,7 @@ router.get('/me', async (req: Request, res: Response): Promise<void> => {
 });
 
 // PATCH /api/users/me — Update candidate profile
-router.patch('/me', async (req: Request, res: Response): Promise<void> => {
+router.patch('/me', auditLog('user', 'update_profile'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { firebase_uid, name, phone, skills, headline, resume_url } = req.body;
     if (!firebase_uid) {
@@ -96,6 +98,41 @@ router.patch('/me', async (req: Request, res: Response): Promise<void> => {
 
     const updated = await get('SELECT * FROM users WHERE firebase_uid = $1', [firebase_uid]);
     res.json({ user: updated });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/users/reputation/:userId — Get reputation score + breakdown
+router.get('/reputation/:userId', auditLog('user', 'view_reputation'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const user = await get(
+      `SELECT id, reputation_score, reputation_breakdown, total_applications, avg_ats_score, verified_skills_count
+       FROM users WHERE id = $1 OR firebase_uid = $1`,
+      [userId]
+    );
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+    res.json({ reputation: user });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/users/reputation/:userId/recalculate — Trigger reputation recalculation
+router.post('/reputation/:userId/recalculate', auditLog('user', 'recalculate_reputation'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const user = await get('SELECT id FROM users WHERE id = $1 OR firebase_uid = $1', [userId]);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+    const score = await recalculateReputation((user as any).id);
+    res.json({ score });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

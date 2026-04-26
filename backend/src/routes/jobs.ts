@@ -21,7 +21,8 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     }
     if (search) {
       params.push(`%${search}%`);
-      q += ` AND (title ILIKE $${params.length} OR description ILIKE $${params.length} OR department ILIKE $${params.length})`;
+      const idx = params.length;
+      q += ` AND (title ILIKE $${idx} OR description ILIKE $${idx} OR department ILIKE $${idx})`;
     }
 
     q += ' ORDER BY created_at DESC';

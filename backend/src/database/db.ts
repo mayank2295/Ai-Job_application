@@ -147,6 +147,67 @@ export async function initializeDatabase(): Promise<void> {
     console.error('Error running migrations:', err);
   }
   
+    // Production features tables
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        user_id TEXT,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        action TEXT NOT NULL,
+        details JSONB DEFAULT '{}',
+        ip_address TEXT,
+        user_agent TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `).catch(() => {});
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS deletion_requests (
+        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        user_id TEXT NOT NULL,
+        firebase_uid TEXT NOT NULL,
+        email TEXT NOT NULL,
+        status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'rejected')),
+        requested_at TIMESTAMPTZ DEFAULT NOW(),
+        completed_at TIMESTAMPTZ,
+        notes TEXT
+      );
+    `).catch(() => {});
+
+    // Reputation + billing columns
+    await pool.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='reputation_score') THEN
+          ALTER TABLE users ADD COLUMN reputation_score REAL DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='reputation_breakdown') THEN
+          ALTER TABLE users ADD COLUMN reputation_breakdown JSONB DEFAULT '{}';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='total_applications') THEN
+          ALTER TABLE users ADD COLUMN total_applications INTEGER DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='avg_ats_score') THEN
+          ALTER TABLE users ADD COLUMN avg_ats_score REAL DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='verified_skills_count') THEN
+          ALTER TABLE users ADD COLUMN verified_skills_count INTEGER DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='subscription_tier') THEN
+          ALTER TABLE users ADD COLUMN subscription_tier TEXT DEFAULT 'free';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='razorpay_payment_id') THEN
+          ALTER TABLE users ADD COLUMN razorpay_payment_id TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='monthly_ats_scans') THEN
+          ALTER TABLE users ADD COLUMN monthly_ats_scans INTEGER DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='monthly_scans_reset_at') THEN
+          ALTER TABLE users ADD COLUMN monthly_scans_reset_at TIMESTAMPTZ DEFAULT NOW();
+        END IF;
+      END $$;
+    `).catch(() => {});
+
   console.log('✅ Database initialized successfully');
 }
 

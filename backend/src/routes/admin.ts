@@ -70,8 +70,6 @@ router.patch('/notifications/read', async (req: Request, res: Response): Promise
   }
 });
 
-export default router;
-
 // GET /api/admin/top-candidates — top 5 by AI score
 router.get('/top-candidates', async (_req: Request, res: Response): Promise<void> => {
   try {
@@ -87,3 +85,5 @@ router.get('/top-candidates', async (_req: Request, res: Response): Promise<void
     res.status(500).json({ error: error.message });
   }
 });
+
+export default router;

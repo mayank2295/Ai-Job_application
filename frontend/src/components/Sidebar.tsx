@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FileText, Briefcase, Users, Bot,
   Settings, LogOut, Zap, User, BookOpen, Globe, CheckSquare,
-  Mic, BarChart2
+  Mic, BarChart2, CreditCard
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -64,6 +64,8 @@ export default function Sidebar({
               {link('/admin/ats-resume', CheckSquare, 'ATS Analyzer')}
               {link('/admin/skill-assessment', BarChart2, 'Skill Assessment')}
               {link('/admin/settings', Settings, 'Settings')}
+              <span className="sidebar-section-title">Account</span>
+              {link('/billing', CreditCard, 'Billing')}
             </>
           ) : (
             <>
@@ -79,6 +81,8 @@ export default function Sidebar({
               {link('/skill-assessment', BarChart2, 'Skill Assessment')}
               {link('/courses', BookOpen, 'Find Courses')}
               {link('/web-search', Globe, 'Web Search')}
+              <span className="sidebar-section-title">Account</span>
+              {link('/billing', CreditCard, 'Billing')}
             </>
           )}
         </nav>
