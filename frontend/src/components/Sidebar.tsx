@@ -59,6 +59,7 @@ export default function Sidebar({
               {link('/admin/applications', FileText, 'All Applications')}
               {link('/admin/jobs', Briefcase, 'Manage Jobs')}
               {link('/admin/users', Users, 'All Users')}
+              {link('/admin/subscriptions', CreditCard, 'Subscriptions')}
               <span className="sidebar-section-title">Tools</span>
               {link('/admin/career-bot', Bot, 'AI Chat')}
               {link('/admin/ats-resume', CheckSquare, 'ATS Analyzer')}

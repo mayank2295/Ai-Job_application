@@ -88,3 +88,94 @@ export async function sendWelcomeEmail(to: string, name: string): Promise<void> 
     console.error('sendWelcomeEmail failed:', error);
   }
 }
+
+export async function sendNewApplicationEmailToHR(
+  hrEmail: string,
+  candidateName: string,
+  candidateEmail: string,
+  jobTitle: string,
+  applicationId: string,
+  phone?: string
+): Promise<void> {
+  if (!SENDGRID_API_KEY || !SENDGRID_FROM_EMAIL || !hrEmail) return;
+
+  try {
+    const html = baseTemplate(
+      'New Application Received',
+      'A candidate has applied for a position',
+      `
+      <p style="color:#334155;">Hi HR Team,</p>
+      <p style="color:#334155;">A new application has been submitted:</p>
+      <div style="background:#f8fafc; border-left:3px solid #4f46e5; padding:12px 16px; margin:16px 0;">
+        <p style="margin:4px 0; color:#334155;"><strong>Candidate:</strong> ${candidateName}</p>
+        <p style="margin:4px 0; color:#334155;"><strong>Email:</strong> ${candidateEmail}</p>
+        ${phone ? `<p style="margin:4px 0; color:#334155;"><strong>Phone:</strong> ${phone}</p>` : ''}
+        <p style="margin:4px 0; color:#334155;"><strong>Position:</strong> ${jobTitle}</p>
+      </div>
+      <a href="${process.env.APP_BASE_URL || 'http://localhost:5173'}/applications/${applicationId}" style="display:inline-block; margin-top:10px; padding:10px 14px; border-radius:8px; text-decoration:none; background:#4f46e5; color:#fff;">View Application</a>
+      `
+    );
+
+    await sgMail.send({
+      to: hrEmail,
+      from: SENDGRID_FROM_EMAIL,
+      subject: `New Application: ${candidateName} for ${jobTitle}`,
+      html,
+    });
+    console.log(`✅ New application email sent to HR: ${hrEmail}`);
+  } catch (error) {
+    console.error('sendNewApplicationEmailToHR failed:', error);
+  }
+}
+
+export async function sendStatusChangeEmailToHR(
+  hrEmail: string,
+  candidateName: string,
+  jobTitle: string,
+  oldStatus: string,
+  newStatus: string,
+  applicationId: string
+): Promise<void> {
+  if (!SENDGRID_API_KEY || !SENDGRID_FROM_EMAIL || !hrEmail) return;
+
+  try {
+    const statusColors: Record<string, string> = {
+      pending: '#94a3b8',
+      reviewing: '#3b82f6',
+      shortlisted: '#8b5cf6',
+      interviewed: '#f59e0b',
+      accepted: '#10b981',
+      rejected: '#ef4444',
+    };
+
+    const html = baseTemplate(
+      'Application Status Updated',
+      'An application status has changed',
+      `
+      <p style="color:#334155;">Hi HR Team,</p>
+      <p style="color:#334155;">Application status has been updated:</p>
+      <div style="background:#f8fafc; border-left:3px solid #4f46e5; padding:12px 16px; margin:16px 0;">
+        <p style="margin:4px 0; color:#334155;"><strong>Candidate:</strong> ${candidateName}</p>
+        <p style="margin:4px 0; color:#334155;"><strong>Position:</strong> ${jobTitle}</p>
+        <p style="margin:8px 0 4px; color:#334155;"><strong>Status Change:</strong></p>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="background:${statusColors[oldStatus] || '#94a3b8'}; color:#fff; padding:4px 10px; border-radius:999px; font-size:12px; text-transform:capitalize;">${oldStatus}</span>
+          <span style="color:#64748b;">→</span>
+          <span style="background:${statusColors[newStatus] || '#94a3b8'}; color:#fff; padding:4px 10px; border-radius:999px; font-size:12px; text-transform:capitalize;">${newStatus}</span>
+        </div>
+      </div>
+      <a href="${process.env.APP_BASE_URL || 'http://localhost:5173'}/applications/${applicationId}" style="display:inline-block; margin-top:10px; padding:10px 14px; border-radius:8px; text-decoration:none; background:#4f46e5; color:#fff;">View Application</a>
+      `
+    );
+
+    await sgMail.send({
+      to: hrEmail,
+      from: SENDGRID_FROM_EMAIL,
+      subject: `Status Update: ${candidateName} - ${jobTitle} (${newStatus})`,
+      html,
+    });
+    console.log(`✅ Status change email sent to HR: ${hrEmail}`);
+  } catch (error) {
+    console.error('sendStatusChangeEmailToHR failed:', error);
+  }
+}

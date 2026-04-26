@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { all, run } from '../database/db';
+import { all, get, run } from '../database/db';
 
 const router = Router();
 
@@ -81,6 +81,45 @@ router.get('/top-candidates', async (_req: Request, res: Response): Promise<void
        LIMIT 5`
     );
     res.json({ candidates: rows });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/admin/subscriptions — all users with subscription details
+router.get('/subscriptions', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const rows = await all<any>(
+      `SELECT
+         id, name, email, photo_url,
+         subscription_tier,
+         subscription_started_at,
+         subscription_expires_at,
+         razorpay_payment_id,
+         created_at
+       FROM users
+       ORDER BY
+         CASE WHEN subscription_tier != 'free' THEN 0 ELSE 1 END,
+         subscription_started_at DESC NULLS LAST`
+    );
+    res.json({ subscriptions: rows });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/admin/subscriptions/stats — summary counts
+router.get('/subscriptions/stats', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const stats = await get<any>(
+      `SELECT
+         COUNT(*) FILTER (WHERE subscription_tier != 'free') AS paid_users,
+         COUNT(*) FILTER (WHERE subscription_tier = 'free') AS free_users,
+         COUNT(*) FILTER (WHERE subscription_expires_at < NOW() AND subscription_tier != 'free') AS expired,
+         COUNT(*) FILTER (WHERE subscription_expires_at BETWEEN NOW() AND NOW() + INTERVAL '7 days') AS expiring_soon
+       FROM users`
+    );
+    res.json({ stats });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

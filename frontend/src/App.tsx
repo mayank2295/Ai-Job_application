@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import HelpBot from './components/HelpBot';
+import ProfileCompletionModal from './components/ProfileCompletionModal';
 import { useAuth } from './context/AuthContext';
 
 import LandingPage from './pages/LandingPage';
@@ -21,6 +22,7 @@ import WorkflowsPage from './pages/WorkflowsPage';
 import ActivityPage from './pages/ActivityPage';
 import AdminJobsPage from './pages/AdminJobsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import AdminSubscriptionsPage from './pages/AdminSubscriptionsPage';
 
 // Candidate pages
 import JobBoardPage from './pages/JobBoardPage';
@@ -34,12 +36,28 @@ import InterviewPage from './pages/InterviewPage';
 import SkillAssessmentPage from './pages/SkillAssessmentPage';
 import BillingPage from './pages/BillingPage';
 function AppLayout({ children }: { children: React.ReactNode }) {
+  const { user, isAdmin } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(() => {
     if (typeof window === 'undefined') return false;
     const isMobileViewport = window.matchMedia('(max-width: 1024px)').matches;
     const isAdminRoute = window.location.pathname.startsWith('/admin');
     return isMobileViewport && isAdminRoute;
   });
+
+  // Show profile completion modal for candidates with incomplete profiles
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  useEffect(() => {
+    if (!user || isAdmin) return;
+    const dismissed = sessionStorage.getItem(`profile_modal_dismissed_${user.id}`);
+    if (dismissed) return;
+    const isIncomplete = !user.name || !user.phone || !user.skills;
+    if (isIncomplete) setShowProfileModal(true);
+  }, [user?.id]);
+
+  const handleModalClose = () => {
+    if (user) sessionStorage.setItem(`profile_modal_dismissed_${user.id}`, '1');
+    setShowProfileModal(false);
+  };
 
   return (
     <div className="app-layout">
@@ -50,6 +68,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
       <Navbar onMenuClick={() => setIsMobileMenuOpen((prev) => !prev)} />
       <main className="main-content">{children}</main>
       <HelpBot />
+      {showProfileModal && <ProfileCompletionModal onClose={handleModalClose} />}
     </div>
   );
 }
@@ -89,6 +108,7 @@ export default function App() {
                 <Route path="applications/:id" element={<ApplicationDetailPage />} />
                 <Route path="jobs" element={<AdminJobsPage />} />
                 <Route path="users" element={<AdminUsersPage />} />
+                <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
                 <Route path="workflows" element={<WorkflowsPage />} />
                 <Route path="activity" element={<ActivityPage />} />
                 <Route path="career-bot" element={<CareerBotPage />} />

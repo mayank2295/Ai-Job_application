@@ -7,7 +7,7 @@ import fs from 'fs';
 import { PowerAutomateService } from '../services/powerAutomate';
 import { callLLM } from './careerbot';
 import { body, validationResult } from 'express-validator';
-import { sendStatusUpdateEmail } from '../services/emailService';
+import { sendStatusUpdateEmail, sendNewApplicationEmailToHR, sendStatusChangeEmailToHR } from '../services/emailService';
 import { notifyUser, notifyCompany } from '../services/socketService';
 
 const router = Router();
@@ -219,6 +219,14 @@ router.post('/', upload.single('resume'), async (req: Request, res: Response): P
     // Respond immediately — don't wait for AI
     res.status(201).json({ application, message: 'Application submitted successfully!' });
 
+    // Send email to HR about new application
+    const hrEmailSetting = await get<{ value: string }>("SELECT value FROM settings WHERE key = 'notification_email'");
+    const hrEmail = hrEmailSetting?.value || process.env.HR_NOTIFICATION_EMAIL;
+    if (hrEmail) {
+      sendNewApplicationEmailToHR(hrEmail, full_name, email, position, id, phone)
+        .catch(err => console.error('HR email error:', err));
+    }
+
     // Run AI analysis in background after response is sent
     if (resume_text && (job_description || position)) {
       (async () => {
@@ -284,9 +292,19 @@ router.patch(
     await run(`UPDATE applications SET ${updateClause} WHERE id = $${params.length}`, params);
 
     const updated = await get('SELECT * FROM applications WHERE id = $1', [req.params.id]);
+    
+    // Send email to candidate
     sendStatusUpdateEmail(existing.email, existing.full_name, existing.position, status).catch((err) =>
       console.error('Status email failed:', err)
     );
+
+    // Send email to HR about status change
+    const hrEmailSetting = await get<{ value: string }>("SELECT value FROM settings WHERE key = 'notification_email'");
+    const hrEmail = hrEmailSetting?.value || process.env.HR_NOTIFICATION_EMAIL;
+    if (hrEmail) {
+      sendStatusChangeEmailToHR(hrEmail, existing.full_name, existing.position, existing.status, status, req.params.id)
+        .catch(err => console.error('HR status email error:', err));
+    }
 
     // Create in-app notification for the candidate
     if (existing.user_id) {

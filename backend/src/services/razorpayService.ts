@@ -16,7 +16,7 @@ function getRazorpay(): Razorpay {
 export const PLANS = {
   candidate_pro: {
     name: 'Candidate Pro',
-    amount: 99900,       // INR 999/month in paise
+    amount: 100,         // INR 1/month in paise (for testing)
     currency: 'INR',
     period: 'monthly',
     features: ['Unlimited ATS scans', 'Unlimited mock interviews', 'Full career bot', 'Reputation score'],
@@ -42,10 +42,15 @@ export async function createOrder(planKey: string, userId: string) {
   if (!plan) throw new Error('Invalid plan');
 
   const rzp = getRazorpay();
+  // Receipt must be <= 40 chars. Use timestamp + first 8 chars of userId
+  const shortUserId = userId.substring(0, 8);
+  const timestamp = Date.now().toString().slice(-10); // last 10 digits
+  const receipt = `ord_${shortUserId}_${timestamp}`; // e.g., "ord_550e8400_5123456789" = 29 chars
+  
   const order = await rzp.orders.create({
     amount: plan.amount,
     currency: plan.currency,
-    receipt: `order_${userId}_${Date.now()}`,
+    receipt,
     notes: { userId, planKey },
   });
 

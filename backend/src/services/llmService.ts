@@ -1,113 +1,174 @@
-// Intelligent LLM router: local Ollama first -> OpenRouter fallback
-// Set OLLAMA_ENABLED=true in .env to use local models
+/**
+ * Smart LLM Router
+ * Priority: Groq (fast + free) -> OpenRouter (fallback)
+ *
+ * Set in .env:
+ *   GROQ_API_KEY=gsk_...          (get free at console.groq.com)
+ *   GROQ_MODEL=llama-3.1-70b-versatile   (optional, this is the default)
+ *   OPENROUTER_API_KEY=sk-or-...  (existing fallback)
+ *   OPENROUTER_MODEL=openai/gpt-4o-mini
+ */
 
-interface LLMMessage {
-  role: 'system' | 'user' | 'assistant';
+export interface LLMMessage {
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
+  tool_call_id?: string;
+  tool_calls?: any[];
+  name?: string;
 }
 
-interface LLMResponse {
-  text: string;
-  model: string;
-  provider: 'ollama' | 'openrouter';
-  tokens_used?: number;
+export interface LLMResponse {
+  choices: { message: { content: string; tool_calls?: any[] } }[];
+  usage?: { total_tokens: number };
+  _provider?: 'groq' | 'openrouter';
 }
 
-const LOCAL_CAPABLE_TASKS = ['ats_score', 'cover_letter', 'quiz_generate', 'interview_feedback'];
+// ─── Groq ────────────────────────────────────────────────────────────────────
 
-export async function callLLM(
+async function callGroq(
   messages: LLMMessage[],
   options: {
-    task?: string;
     maxTokens?: number;
     temperature?: number;
+    tools?: any[];
     jsonMode?: boolean;
-    forceCloud?: boolean;
   } = {}
 ): Promise<LLMResponse> {
-  const { task, maxTokens = 1000, temperature = 0.7, jsonMode = false, forceCloud = false } = options;
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY not set');
 
-  const useLocal =
-    !forceCloud &&
-    process.env.OLLAMA_ENABLED === 'true' &&
-    (task ? LOCAL_CAPABLE_TASKS.includes(task) : true);
+  const model = process.env.GROQ_MODEL || 'llama-3.1-70b-versatile';
 
-  if (useLocal) {
-    try {
-      return await callOllama(messages, { maxTokens, temperature, jsonMode });
-    } catch (err) {
-      console.warn('[LLM] Ollama failed, falling back to OpenRouter:', (err as Error).message);
-    }
+  const body: any = {
+    model,
+    messages,
+    max_tokens: options.maxTokens || 1500,
+    temperature: options.temperature ?? 0.7,
+  };
+
+  if (options.tools?.length) {
+    body.tools = options.tools;
+    body.tool_choice = 'auto';
   }
 
-  return await callOpenRouter(messages, { maxTokens, temperature, jsonMode });
-}
+  if (options.jsonMode) {
+    body.response_format = { type: 'json_object' };
+  }
 
-async function callOllama(
-  messages: LLMMessage[],
-  options: { maxTokens: number; temperature: number; jsonMode: boolean }
-): Promise<LLMResponse> {
-  const model = process.env.OLLAMA_MODEL || 'llama3.1:8b';
-  const baseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-
-  const response = await fetch(`${baseUrl}/api/chat`, {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model,
-      messages,
-      stream: false,
-      options: { temperature: options.temperature, num_predict: options.maxTokens },
-      format: options.jsonMode ? 'json' : undefined,
-    }),
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(30000),
   });
 
-  if (!response.ok) throw new Error(`Ollama error: ${response.status}`);
-  const data = await response.json() as { message?: { content: string }; eval_count?: number };
-  return {
-    text: data.message?.content || '',
-    model,
-    provider: 'ollama',
-    tokens_used: data.eval_count,
-  };
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Groq ${res.status}: ${err}`);
+  }
+
+  const data = await res.json() as LLMResponse;
+  data._provider = 'groq';
+  return data;
 }
+
+// ─── OpenRouter ───────────────────────────────────────────────────────────────
 
 async function callOpenRouter(
   messages: LLMMessage[],
-  options: { maxTokens: number; temperature: number; jsonMode: boolean }
+  options: {
+    maxTokens?: number;
+    temperature?: number;
+    tools?: any[];
+    jsonMode?: boolean;
+  } = {}
 ): Promise<LLMResponse> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error('OPENROUTER_API_KEY not set');
+
   const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini';
 
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const body: any = {
+    model,
+    messages,
+    max_tokens: options.maxTokens || 1500,
+    temperature: options.temperature ?? 0.7,
+  };
+
+  if (options.tools?.length) {
+    body.tools = options.tools;
+    body.tool_choice = 'auto';
+  }
+
+  if (options.jsonMode) {
+    body.response_format = { type: 'json_object' };
+  }
+
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': process.env.FRONTEND_URL || 'https://jobflow.ai',
       'X-Title': 'JobFlow AI',
     },
-    body: JSON.stringify({
-      model,
-      messages,
-      max_tokens: options.maxTokens,
-      temperature: options.temperature,
-      response_format: options.jsonMode ? { type: 'json_object' } : undefined,
-    }),
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(60000),
   });
 
-  if (!response.ok) throw new Error(`OpenRouter error: ${response.status}`);
-  const data = await response.json() as {
-    choices: { message: { content: string } }[];
-    usage?: { total_tokens: number };
-  };
-  return {
-    text: data.choices[0]?.message?.content || '',
-    model,
-    provider: 'openrouter',
-    tokens_used: data.usage?.total_tokens,
-  };
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`OpenRouter ${res.status}: ${err}`);
+  }
+
+  const data = await res.json() as LLMResponse;
+  data._provider = 'openrouter';
+  return data;
 }
+
+// ─── Smart Router ─────────────────────────────────────────────────────────────
+
+/**
+ * Main entry point. Tries Groq first (fast + free), falls back to OpenRouter.
+ * Pass forceProvider to skip routing logic.
+ */
+export async function callLLMSmart(
+  messages: LLMMessage[],
+  options: {
+    maxTokens?: number;
+    temperature?: number;
+    tools?: any[];
+    jsonMode?: boolean;
+    forceProvider?: 'groq' | 'openrouter';
+  } = {}
+): Promise<LLMResponse> {
+  const { forceProvider, ...rest } = options;
+
+  // Force a specific provider
+  if (forceProvider === 'openrouter') return callOpenRouter(messages, rest);
+  if (forceProvider === 'groq') return callGroq(messages, rest);
+
+  // Try Groq first if key is set
+  if (process.env.GROQ_API_KEY) {
+    try {
+      const result = await callGroq(messages, rest);
+      console.log(`[LLM] Groq (${process.env.GROQ_MODEL || 'llama-3.1-70b-versatile'})`);
+      return result;
+    } catch (err: any) {
+      // Rate limit (429) or quota — fall back to OpenRouter
+      console.warn(`[LLM] Groq failed (${err.message}), falling back to OpenRouter`);
+    }
+  }
+
+  // Fallback to OpenRouter
+  console.log(`[LLM] OpenRouter (${process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini'})`);
+  return callOpenRouter(messages, rest);
+}
+
+// ─── Streaming (OpenRouter only — Groq streaming needs SSE parsing) ───────────
 
 export async function streamLLM(
   messages: LLMMessage[],

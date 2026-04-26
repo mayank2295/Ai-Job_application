@@ -1,11 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { all, get, run } from '../database/db';
+import { callLLMSmart, type LLMMessage } from '../services/llmService';
 
 const router = Router();
 
-const getOpenRouterKey = () => process.env.OPENROUTER_API_KEY;
 const getTavilyKey = () => process.env.TAVILY_API_KEY;
-const getModel = () => process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini";
 
 export async function tavilySearch(query: string, depth = "basic"): Promise<any> {
   const apiKey = getTavilyKey();
@@ -19,18 +18,9 @@ export async function tavilySearch(query: string, depth = "basic"): Promise<any>
   return r.json();
 }
 
+// Exported callLLM used by applications.ts and aiFeatures.ts
 export async function callLLM(messages: any[], tools: any = null): Promise<any> {
-  const apiKey = getOpenRouterKey();
-  if (!apiKey) throw new Error("OPENROUTER_API_KEY is not configured.");
-  const body: any = { model: getModel(), messages, max_tokens: 1500 };
-  if (tools) { body.tools = tools; body.tool_choice = "auto"; }
-  const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}`, "HTTP-Referer": "https://jobflow.ai", "X-Title": "JobFlow AI" },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) throw new Error(`OpenRouter ${r.status}: ${await r.text()}`);
-  return r.json();
+  return callLLMSmart(messages as LLMMessage[], tools ? { tools } : {});
 }
 
 const TOOLS = [

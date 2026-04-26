@@ -29,7 +29,7 @@ const CANDIDATE_PLANS: Plan[] = [
   {
     key: 'candidate_pro',
     name: 'Candidate Pro',
-    price: 999,
+    price: 1,
     currency: 'INR',
     target: 'candidate',
     features: ['Unlimited ATS scans', 'Unlimited mock interviews', 'Full AI career bot', 'Reputation score', 'Priority support'],
@@ -70,7 +70,10 @@ export default function BillingPage() {
   const loadStatus = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await fetch(`${API_BASE}/billing/status`);
+      const token = await user.firebaseUser.getIdToken();
+      const res = await fetch(`${API_BASE}/billing/status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (res.ok) setStatus(await res.json());
     } catch {}
   }, [user]);
@@ -94,9 +97,13 @@ export default function BillingPage() {
     setError('');
     setLoadingPlan(plan.key);
     try {
+      const token = await user!.firebaseUser.getIdToken();
       const orderRes = await fetch(`${API_BASE}/billing/create-order`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ planKey: plan.key }),
       });
       if (!orderRes.ok) {
@@ -126,9 +133,13 @@ export default function BillingPage() {
         handler: async (response: any) => {
           try {
             setLoading(true);
+            const verifyToken = await user!.firebaseUser.getIdToken();
             const verifyRes = await fetch(`${API_BASE}/billing/verify`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${verifyToken}`,
+              },
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,

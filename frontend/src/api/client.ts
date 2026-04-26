@@ -128,4 +128,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+
+  // Admin subscriptions
+  getAdminSubscriptions: () =>
+    request<{ subscriptions: any[] }>('/admin/subscriptions'),
+
+  getAdminSubscriptionStats: () =>
+    request<{ stats: any }>('/admin/subscriptions/stats'),
 };

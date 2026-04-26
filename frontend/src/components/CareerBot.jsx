@@ -153,7 +153,24 @@ Rules:
     try { 
       let text = file.type === "application/pdf" ? await extractPdfText(file) : await file.text(); 
       if (tab === "chat") {
-        setChatDocuments(prev => [...prev, { name: file.name, text }]);
+        const newDoc = { name: file.name, text };
+        setChatDocuments(prev => [...prev, newDoc]);
+        // Just add a silent user message so AI has the content in history
+        // but don't auto-trigger a response — let the user ask their question
+        const ts = new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+        const docMsg = { 
+          role: "user", 
+          content: `I've uploaded my document "${file.name}". Here is the full content:\n\n${text.slice(0, 6000)}${text.length > 6000 ? '\n\n[Document truncated for length]' : ''}`, 
+          ts,
+          isDocUpload: true
+        };
+        // Add a simple assistant acknowledgment without calling the API
+        const ackMsg = {
+          role: "assistant",
+          content: `📄 Got it! I've read **${file.name}** (${Math.round(text.length / 5)} words). What would you like to know about it?`,
+          ts: new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }),
+        };
+        updateMessages(prev => [...prev, docMsg, ackMsg]);
       } else {
         setResume({ name: file.name, text }); 
         setAtsData(null); 
@@ -231,7 +248,7 @@ Rules:
     }
 
     const docContext = chatDocuments.length > 0 
-      ? "\n\nDocuments loaded:\n" + chatDocuments.map(d => `--- ${d.name} ---\n${d.text.slice(0, 2000)}`).join("\n\n")
+      ? "\n\nNote: The user has uploaded documents. Their content is already in the conversation history above."
       : "";
 
     const history = [
@@ -368,7 +385,7 @@ Rules:
                       </div>
                     </div>
                   ) : (
-                    <div className="cb-msg-bubble" dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }} />
+                    <div className="cb-msg-bubble" dangerouslySetInnerHTML={{ __html: renderMarkdown(m.isDocUpload ? `📄 Uploaded: **${m.content.split('"')[1] || 'document'}**` : m.content) }} />
                   )}
                   <div className="cb-msg-meta">
                     <span>{m.ts}</span>

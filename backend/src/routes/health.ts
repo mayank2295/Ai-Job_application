@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { query } from '../database/db';
+import { sendStatusUpdateEmail } from '../services/emailService';
 
 const router = Router();
 const startTime = Date.now();
@@ -79,6 +80,33 @@ router.get('/detailed', async (_req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
     checks,
   });
+});
+
+// POST /api/health/test-email — send a test email to verify SendGrid config
+router.post('/test-email', async (req: Request, res: Response): Promise<void> => {
+  const to = req.body?.to || process.env.HR_NOTIFICATION_EMAIL || process.env.SENDGRID_FROM_EMAIL;
+
+  if (!to) {
+    res.status(400).json({ error: 'No recipient. Pass { "to": "email" } in body or set HR_NOTIFICATION_EMAIL in .env' });
+    return;
+  }
+
+  if (!process.env.SENDGRID_API_KEY) {
+    res.status(503).json({ error: 'SENDGRID_API_KEY is not set in .env' });
+    return;
+  }
+
+  try {
+    await sendStatusUpdateEmail(to, 'Test User', 'Software Engineer', 'accepted');
+    res.json({
+      success: true,
+      message: `Test email sent to ${to}`,
+      from: process.env.SENDGRID_FROM_EMAIL,
+    });
+  } catch (err: any) {
+    const detail = err?.response?.body?.errors?.[0]?.message || err?.message || 'Unknown error';
+    res.status(500).json({ success: false, error: detail });
+  }
 });
 
 export default router;

@@ -45,6 +45,9 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 // Health routes (before rate limiter so they're never blocked)
 app.use('/api/health', healthRoutes);
 
+// Billing plans + status are lightweight reads — register before rate limiter
+app.use('/api/billing', billingRoutes);
+
 // Rate limiting
 app.use('/api', generalLimiter);
 app.use('/api/careerbot', aiLimiter);
@@ -63,7 +66,6 @@ app.use('/api/jobs', jobsRoutes);
 app.use('/api/ai', aiFeaturesRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/gdpr', gdprRoutes);
-app.use('/api/billing', billingRoutes);
 app.use('/api/search', searchRoutes);
 
 // Root message
