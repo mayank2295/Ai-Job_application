@@ -227,6 +227,19 @@ router.post('/', upload.single('resume'), async (req: Request, res: Response): P
         .catch(err => console.error('HR email error:', err));
     }
 
+    // In-app notification for all admin users
+    (async () => {
+      try {
+        const admins = await all<any>(`SELECT id FROM users WHERE role = 'admin'`);
+        for (const admin of admins) {
+          await run(
+            `INSERT INTO notifications (user_id, title, message, type) VALUES ($1, $2, $3, $4)`,
+            [admin.id, 'New Application', `${full_name} applied for ${position}.`, 'info']
+          );
+        }
+      } catch (e) { console.error('Admin notification error:', e); }
+    })();
+
     // Run AI analysis in background after response is sent
     if (resume_text && (job_description || position)) {
       (async () => {
@@ -307,7 +320,14 @@ router.patch(
     }
 
     // Create in-app notification for the candidate
-    if (existing.user_id) {
+    // Resolve candidate user_id — try direct user_id first, then look up by email
+    let candidateUserId = existing.user_id;
+    if (!candidateUserId && existing.email) {
+      const candidateUser = await get<any>(`SELECT id FROM users WHERE email = $1 LIMIT 1`, [existing.email]);
+      candidateUserId = candidateUser?.id || null;
+    }
+
+    if (candidateUserId) {
       const statusLabels: Record<string, string> = {
         reviewing: 'is under review',
         shortlisted: 'has been shortlisted',
@@ -316,20 +336,46 @@ router.patch(
         rejected: 'was not selected this time',
       };
       const label = statusLabels[status] || `status updated to ${status}`;
+      const notifType = status === 'accepted' ? 'success' : status === 'rejected' ? 'error' : 'info';
+
       run(
         `INSERT INTO notifications (user_id, title, message, type) VALUES ($1, $2, $3, $4)`,
-        [existing.user_id, 'Application Update', `Your application for ${existing.position} ${label}.`,
-          status === 'accepted' ? 'success' : status === 'rejected' ? 'error' : 'info']
+        [candidateUserId, 'Application Update', `Your application for ${existing.position} ${label}.`, notifType]
       ).catch(() => {});
 
       // Real-time WebSocket notification to candidate
-      notifyUser(existing.user_id, 'application_status_update', {
+      notifyUser(candidateUserId, 'application_status_update', {
         applicationId: req.params.id,
         newStatus: status,
         position: existing.position,
         message: `Your application for ${existing.position} ${label}.`,
       });
     }
+
+    // In-app notification for all admin users about status change
+    (async () => {
+      try {
+        const admins = await all<any>(`SELECT id FROM users WHERE role = 'admin'`);
+        const statusEmoji: Record<string, string> = {
+          reviewing: 'Reviewing',
+          shortlisted: 'Shortlisted',
+          interviewed: 'Interview',
+          accepted: 'Accepted',
+          rejected: 'Rejected',
+        };
+        for (const admin of admins) {
+          await run(
+            `INSERT INTO notifications (user_id, title, message, type) VALUES ($1, $2, $3, $4)`,
+            [
+              admin.id,
+              `Application ${statusEmoji[status] || status}`,
+              `${existing.full_name}'s application for ${existing.position} moved to ${status}.`,
+              status === 'accepted' ? 'success' : status === 'rejected' ? 'error' : 'info',
+            ]
+          );
+        }
+      } catch (e) { console.error('Admin status notification error:', e); }
+    })();
 
     // Notify company room (other admins watching live feed)
     notifyCompany('default-company-001', 'application_updated', {

@@ -94,7 +94,7 @@ export default function ProfileCompletionModal({ onClose }: Props) {
       }}>
         {/* Header */}
         <div style={{
-          padding: '20px 24px 16px',
+          padding: '20px 28px 16px',
           borderBottom: '1px solid var(--border-primary)',
           display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
         }}>
@@ -120,7 +120,7 @@ export default function ProfileCompletionModal({ onClose }: Props) {
         </div>
 
         {/* Step indicator */}
-        <div style={{ padding: '12px 24px 0', display: 'flex', gap: 6 }}>
+        <div style={{ padding: '14px 28px 0', display: 'flex', gap: 6 }}>
           {[1, 2].map(s => (
             <div key={s} style={{
               flex: 1, height: 3, borderRadius: 99,
@@ -131,13 +131,13 @@ export default function ProfileCompletionModal({ onClose }: Props) {
         </div>
 
         {/* Body */}
-        <div style={{ padding: '20px 24px' }}>
+        <div style={{ padding: '24px 28px' }}>
           {step === 1 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               {/* Name */}
               <div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                  <User size={12} /> Full Name *
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 7, letterSpacing: '0.01em' }}>
+                  <User size={13} color="var(--accent-primary)" /> Full Name <span style={{ color: 'var(--accent-rose)', marginLeft: 2 }}>*</span>
                 </label>
                 <input
                   value={name}
@@ -145,85 +145,141 @@ export default function ProfileCompletionModal({ onClose }: Props) {
                   placeholder="e.g. Sachin Rao"
                   autoFocus
                   onKeyDown={e => e.key === 'Enter' && handleNext()}
+                  style={{
+                    width: '100%', padding: '11px 14px', borderRadius: 10,
+                    border: '1.5px solid var(--border-primary)',
+                    background: 'var(--bg-primary)', color: 'var(--text-primary)',
+                    fontSize: 14, outline: 'none', boxSizing: 'border-box',
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                    fontFamily: 'inherit',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--accent-primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--border-primary)'; e.target.style.boxShadow = 'none'; }}
                 />
               </div>
 
               {/* Phone */}
               <div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                  <Phone size={12} /> Phone Number
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 7 }}>
+                  <Phone size={13} color="var(--accent-primary)" /> Phone Number
+                  <span style={{ marginLeft: 4, fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span>
                 </label>
                 <input
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
                   placeholder="+91 98765 43210"
                   onKeyDown={e => e.key === 'Enter' && handleNext()}
+                  style={{
+                    width: '100%', padding: '11px 14px', borderRadius: 10,
+                    border: '1.5px solid var(--border-primary)',
+                    background: 'var(--bg-primary)', color: 'var(--text-primary)',
+                    fontSize: 14, outline: 'none', boxSizing: 'border-box',
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                    fontFamily: 'inherit',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--accent-primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--border-primary)'; e.target.style.boxShadow = 'none'; }}
                 />
               </div>
 
               {/* Headline */}
               <div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                  <Briefcase size={12} /> Professional Headline
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 7 }}>
+                  <Briefcase size={13} color="var(--accent-primary)" /> Professional Headline
+                  <span style={{ marginLeft: 4, fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span>
                 </label>
                 <input
                   value={headline}
                   onChange={e => setHeadline(e.target.value)}
                   placeholder="e.g. Full Stack Developer with 3 years experience"
                   onKeyDown={e => e.key === 'Enter' && handleNext()}
+                  style={{
+                    width: '100%', padding: '11px 14px', borderRadius: 10,
+                    border: '1.5px solid var(--border-primary)',
+                    background: 'var(--bg-primary)', color: 'var(--text-primary)',
+                    fontSize: 14, outline: 'none', boxSizing: 'border-box',
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                    fontFamily: 'inherit',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--accent-primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--border-primary)'; e.target.style.boxShadow = 'none'; }}
                 />
               </div>
             </div>
           ) : (
             <div>
-              <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text-secondary)' }}>
-                Select your key skills (or type your own):
+              <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                Select your key skills — or type your own below:
               </p>
 
               {/* Suggested skills */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-                {SUGGESTED_SKILLS.map(skill => (
-                  <button
-                    key={skill}
-                    onClick={() => toggleSkill(skill)}
-                    style={{
-                      padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-                      cursor: 'pointer', transition: 'all 0.15s',
-                      background: skills.includes(skill) ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
-                      color: skills.includes(skill) ? 'white' : 'var(--text-secondary)',
-                      border: skills.includes(skill) ? '1px solid var(--accent-primary)' : '1px solid var(--border-primary)',
-                    }}
-                  >
-                    {skills.includes(skill) ? '✓ ' : ''}{skill}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 16 }}>
+                {SUGGESTED_SKILLS.map(skill => {
+                  const selected = skills.includes(skill);
+                  return (
+                    <button
+                      key={skill}
+                      onClick={() => toggleSkill(skill)}
+                      style={{
+                        padding: '6px 14px', borderRadius: 999, fontSize: 13, fontWeight: 600,
+                        cursor: 'pointer', transition: 'all 0.15s',
+                        background: selected ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                        color: selected ? 'white' : 'var(--text-secondary)',
+                        border: selected ? '1.5px solid var(--accent-primary)' : '1.5px solid var(--border-primary)',
+                        boxShadow: selected ? '0 2px 8px rgba(99,102,241,0.25)' : 'none',
+                        transform: selected ? 'scale(1.03)' : 'scale(1)',
+                      }}
+                    >
+                      {selected ? '✓ ' : ''}{skill}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Custom skill input */}
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <input
                   value={skillInput}
                   onChange={e => setSkillInput(e.target.value)}
-                  placeholder="Add a custom skill..."
+                  placeholder="Add a custom skill (e.g. Figma, Rust...)"
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomSkill(); } }}
-                  style={{ flex: 1 }}
+                  style={{
+                    flex: 1, padding: '10px 14px', borderRadius: 10,
+                    border: '1.5px solid var(--border-primary)',
+                    background: 'var(--bg-primary)', color: 'var(--text-primary)',
+                    fontSize: 13, outline: 'none', fontFamily: 'inherit',
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--accent-primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--border-primary)'; e.target.style.boxShadow = 'none'; }}
                 />
-                <button className="btn btn-secondary" onClick={addCustomSkill} style={{ flexShrink: 0 }}>
+                <button
+                  onClick={addCustomSkill}
+                  disabled={!skillInput.trim()}
+                  style={{
+                    padding: '10px 18px', borderRadius: 10, border: '1.5px solid var(--accent-primary)',
+                    background: skillInput.trim() ? 'var(--accent-primary)' : 'transparent',
+                    color: skillInput.trim() ? 'white' : 'var(--accent-primary)',
+                    fontSize: 13, fontWeight: 600, cursor: skillInput.trim() ? 'pointer' : 'not-allowed',
+                    fontFamily: 'inherit', transition: 'all 0.15s', flexShrink: 0,
+                  }}
+                >
                   Add
                 </button>
               </div>
 
               {/* Selected custom skills */}
               {skills.filter(s => !SUGGESTED_SKILLS.includes(s)).length > 0 && (
-                <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                   {skills.filter(s => !SUGGESTED_SKILLS.includes(s)).map(skill => (
                     <span key={skill} style={{
                       display: 'inline-flex', alignItems: 'center', gap: 4,
-                      padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+                      padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
                       background: 'var(--accent-primary)', color: 'white',
+                      boxShadow: '0 2px 8px rgba(99,102,241,0.25)',
                     }}>
                       {skill}
-                      <button onClick={() => toggleSkill(skill)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'white', padding: 0, display: 'flex' }}>
+                      <button onClick={() => toggleSkill(skill)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.8)', padding: 0, display: 'flex', lineHeight: 1 }}>
                         <X size={11} />
                       </button>
                     </span>
@@ -231,9 +287,15 @@ export default function ProfileCompletionModal({ onClose }: Props) {
                 </div>
               )}
 
-              {skills.length > 0 && (
-                <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--accent-primary)', fontWeight: 600 }}>
-                  {skills.length} skill{skills.length !== 1 ? 's' : ''} selected
+              {/* Count */}
+              {skills.length > 0 ? (
+                <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--accent-primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: '50%', background: 'var(--accent-primary)', color: 'white', fontSize: 10, fontWeight: 800 }}>{skills.length}</span>
+                  skill{skills.length !== 1 ? 's' : ''} selected
+                </p>
+              ) : (
+                <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                  Select at least one skill to improve job matching
                 </p>
               )}
             </div>
@@ -246,24 +308,32 @@ export default function ProfileCompletionModal({ onClose }: Props) {
 
         {/* Footer */}
         <div style={{
-          padding: '0 24px 20px',
+          padding: '0 28px 24px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <button
             onClick={onClose}
-            className="btn btn-ghost"
-            style={{ fontSize: 13, color: 'var(--text-muted)' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-muted)', fontFamily: 'inherit', padding: '8px 4px' }}
           >
             Skip for now
           </button>
           {step === 1 ? (
-            <button className="btn btn-primary" onClick={handleNext} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              className="btn btn-primary"
+              onClick={handleNext}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '11px 24px', fontSize: 14, boxShadow: '0 4px 14px rgba(99,102,241,0.35)' }}
+            >
               Next <ChevronRight size={15} />
             </button>
           ) : (
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-secondary" onClick={() => setStep(1)}>Back</button>
-              <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+              <button className="btn btn-secondary" onClick={() => setStep(1)} style={{ padding: '11px 20px' }}>Back</button>
+              <button
+                className="btn btn-primary"
+                onClick={handleSave}
+                disabled={saving}
+                style={{ padding: '11px 24px', boxShadow: '0 4px 14px rgba(99,102,241,0.35)' }}
+              >
                 {saving ? 'Saving...' : 'Save Profile'}
               </button>
             </div>

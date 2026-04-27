@@ -48,9 +48,17 @@ router.get('/notifications', async (req: Request, res: Response): Promise<void> 
   try {
     const { user_id } = req.query;
     if (!user_id) { res.status(400).json({ error: 'user_id required' }); return; }
+
+    // Resolve: accept either PostgreSQL UUID or Firebase UID
+    const user = await get<any>(
+      `SELECT id FROM users WHERE id = $1 OR firebase_uid = $1 LIMIT 1`,
+      [user_id as string]
+    );
+    if (!user) { res.json({ notifications: [] }); return; }
+
     const rows = await all<any>(
       `SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 30`,
-      [user_id as string]
+      [user.id]
     );
     res.json({ notifications: rows });
   } catch (error: any) {
@@ -63,7 +71,15 @@ router.patch('/notifications/read', async (req: Request, res: Response): Promise
   try {
     const { user_id } = req.body;
     if (!user_id) { res.status(400).json({ error: 'user_id required' }); return; }
-    await run(`UPDATE notifications SET is_read = TRUE WHERE user_id = $1`, [user_id]);
+
+    // Resolve: accept either PostgreSQL UUID or Firebase UID
+    const user = await get<any>(
+      `SELECT id FROM users WHERE id = $1 OR firebase_uid = $1 LIMIT 1`,
+      [user_id]
+    );
+    if (!user) { res.json({ success: true }); return; }
+
+    await run(`UPDATE notifications SET is_read = TRUE WHERE user_id = $1`, [user.id]);
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

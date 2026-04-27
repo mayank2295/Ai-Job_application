@@ -43,15 +43,15 @@ export default function NotificationBell() {
   const userId = user?.id || user?.firebaseUser?.uid;
   const unread = notifications.filter((n) => !n.is_read).length;
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetch(`${API_BASE}/admin/notifications?user_id=${userId}`);
+      const res = await fetch(`${API_BASE}/admin/notifications?user_id=${encodeURIComponent(userId)}`);
       if (!res.ok) return;
       const data = await res.json();
       setNotifications(data.notifications || []);
     } catch {}
-  };
+  }, [userId]);
 
   // Real-time: instantly add notification when socket fires
   const handleRealTime = useCallback((data: any) => {
@@ -85,7 +85,7 @@ export default function NotificationBell() {
     load();
     const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
-  }, [userId]);
+  }, [load]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
