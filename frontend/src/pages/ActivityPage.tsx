@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
   Zap,
-  CheckCircle,
-  XCircle,
+  CircleCheck,
+  CircleX,
   RefreshCw,
   Clock,
 } from 'lucide-react';
@@ -91,8 +91,8 @@ export default function ActivityPage() {
                       {log.flow_type}
                     </span>
                     <span className={`badge badge-${log.status}`} style={{ fontSize: 10, padding: '2px 8px' }}>
-                      {log.status === 'completed' && <CheckCircle size={10} />}
-                      {log.status === 'failed' && <XCircle size={10} />}
+                      {log.status === 'completed' && <CircleCheck size={10} />}
+                      {log.status === 'failed' && <CircleX size={10} />}
                       {log.status === 'running' && <RefreshCw size={10} />}
                       {log.status}
                     </span>

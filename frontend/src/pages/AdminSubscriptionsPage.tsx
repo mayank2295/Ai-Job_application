@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, Users, AlertTriangle, CheckCircle, Clock, RefreshCw } from 'lucide-react';
+import { CreditCard, Users, TriangleAlert, CircleCheck, Clock, RefreshCw } from 'lucide-react';
 import { api } from '../api/client';
 
 type SubscriptionUser = {
@@ -23,6 +23,7 @@ type Stats = {
 
 const TIER_LABELS: Record<string, string> = {
   free: 'Free',
+  candidate_plus: 'Candidate Plus',
   candidate_pro: 'Candidate Pro',
   recruiter_starter: 'Recruiter Starter',
   recruiter_scale: 'Recruiter Scale',
@@ -30,6 +31,7 @@ const TIER_LABELS: Record<string, string> = {
 
 const TIER_COLORS: Record<string, string> = {
   free: 'var(--text-muted)',
+  candidate_plus: '#06b6d4',
   candidate_pro: 'var(--accent-primary)',
   recruiter_starter: 'var(--accent-emerald)',
   recruiter_scale: 'var(--accent-amber)',
@@ -113,13 +115,13 @@ export default function AdminSubscriptionsPage() {
       {stats && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 28 }}>
           <StatCard icon={<Users size={18} />} label="Paid Users" value={stats.paid_users} color="var(--accent-primary)" />
-          <StatCard icon={<CheckCircle size={18} />} label="Free Users" value={stats.free_users} color="var(--accent-emerald)" />
-          <StatCard icon={<AlertTriangle size={18} />} label="Expiring Soon" value={stats.expiring_soon} color="var(--accent-amber)" />
+          <StatCard icon={<CircleCheck size={18} />} label="Free Users" value={stats.free_users} color="var(--accent-emerald)" />
+          <StatCard icon={<TriangleAlert size={18} />} label="Expiring Soon" value={stats.expiring_soon} color="var(--accent-amber)" />
           <StatCard icon={<Clock size={18} />} label="Expired" value={stats.expired} color="var(--accent-rose)" />
         </div>
       )}
 
-      {/* Filter tabs */}
+      {/* filter tabs */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {(['all', 'paid', 'free', 'expiring'] as const).map((f) => (
           <button

@@ -227,6 +227,31 @@ export async function initializeDatabase(): Promise<void> {
   await pool.query('CREATE INDEX IF NOT EXISTS idx_notifications_user_id    ON notifications(user_id)').catch(() => {});
   await pool.query('CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC)').catch(() => {});
 
+  // Fix applications status constraint — ensure shortlisted is included
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE applications DROP CONSTRAINT IF EXISTS applications_status_check;
+      ALTER TABLE applications ADD CONSTRAINT applications_status_check
+        CHECK (status IN ('pending', 'reviewing', 'shortlisted', 'interviewed', 'accepted', 'rejected'));
+    EXCEPTION WHEN others THEN NULL;
+    END $$;
+  `).catch(() => {});
+
+  // Quiz results table for admin analytics
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS quiz_results (
+      id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      skill       TEXT NOT NULL,
+      score       INTEGER NOT NULL,
+      total       INTEGER NOT NULL,
+      passed      BOOLEAN NOT NULL,
+      answers     JSONB DEFAULT '[]',
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `).catch(() => {});
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_quiz_results_user_id ON quiz_results(user_id)').catch(() => {});
+
   console.log('✅ Database initialized successfully');
 }
 

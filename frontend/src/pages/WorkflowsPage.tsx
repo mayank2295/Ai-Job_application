@@ -4,9 +4,9 @@ import {
   Clock,
   RefreshCw,
   Play,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
+  CircleCheck,
+  CircleX,
+  TriangleAlert,
   Mail,
   MessageSquare,
   Brain,
@@ -142,7 +142,7 @@ export default function WorkflowsPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
                 {wf.features.map((f) => (
                   <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-muted)' }}>
-                    <CheckCircle size={14} color="var(--accent-emerald)" />
+                    <CircleCheck size={14} color="var(--accent-emerald)" />
                     {f}
                   </div>
                 ))}
@@ -223,8 +223,8 @@ export default function WorkflowsPage() {
                   <td>{log.applicant_name || '—'}</td>
                   <td>
                     <span className={`badge badge-${log.status}`}>
-                      {log.status === 'completed' && <CheckCircle size={12} />}
-                      {log.status === 'failed' && <XCircle size={12} />}
+                      {log.status === 'completed' && <CircleCheck size={12} />}
+                      {log.status === 'failed' && <CircleX size={12} />}
                       {log.status === 'running' && <RefreshCw size={12} />}
                       {log.status}
                     </span>
@@ -232,7 +232,7 @@ export default function WorkflowsPage() {
                   <td>
                     {log.error_message ? (
                       <span style={{ fontSize: 12, color: 'var(--accent-rose)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <AlertTriangle size={12} />
+                        <TriangleAlert size={12} />
                         {log.error_message.substring(0, 50)}
                       </span>
                     ) : '—'}

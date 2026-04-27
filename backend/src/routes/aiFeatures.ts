@@ -317,6 +317,14 @@ router.post('/skill-quiz/submit', async (req: Request, res: Response): Promise<v
       ]);
     }
 
+    // Save quiz result for admin analytics
+    await run(
+      `INSERT INTO quiz_results (user_id, skill, score, total, passed, answers)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+       ON CONFLICT DO NOTHING`,
+      [resolvedCandidateId, quiz.skill, score, questions.length, passed, JSON.stringify(answers)]
+    ).catch(() => {}); // Graceful fallback if table doesn't exist yet
+
     await run('UPDATE pending_quizzes SET used = TRUE WHERE token = $1', [quizToken]);
     res.json({ passed, score, correctAnswers, explanations });
 

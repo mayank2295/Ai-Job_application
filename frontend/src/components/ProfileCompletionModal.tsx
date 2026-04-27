@@ -54,7 +54,7 @@ export default function ProfileCompletionModal({ onClose }: Props) {
     setSaving(true);
     setError('');
     try {
-      await fetch(`${API_BASE}/users/me`, {
+      const res = await fetch(`${API_BASE}/users/me`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -65,10 +65,14 @@ export default function ProfileCompletionModal({ onClose }: Props) {
           skills: skills.join(', '),
         }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Server error ${res.status}`);
+      }
       await refreshUser();
       onClose();
-    } catch {
-      setError('Failed to save profile. Please try again.');
+    } catch (e: any) {
+      setError(e.message || 'Failed to save profile. Please try again.');
     } finally {
       setSaving(false);
     }

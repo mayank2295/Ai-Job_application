@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save, CheckCircle, Copy, Zap, Bell, Database, Bot } from 'lucide-react';
+import { Save, CircleCheck, Copy, Zap, Bell, Database, Bot } from 'lucide-react';
 import { api } from '../api/client';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3001/api' : 'https://ai-job-application-1.onrender.com/api')).replace(/\/$/, '');
@@ -15,6 +15,7 @@ export default function SettingsPage() {
   const [toast, setToast] = useState<{ type: string; message: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [health, setHealth] = useState<any>(null);
+  const [testingEmail, setTestingEmail] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -44,6 +45,25 @@ export default function SettingsPage() {
   const showToast = (type: string, message: string) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleTestEmail = async () => {
+    if (!settings.notification_email) return;
+    setTestingEmail(true);
+    try {
+      const res = await fetch(`${API_BASE}/settings/test-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: settings.notification_email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send test email');
+      showToast('success', `Test email sent to ${settings.notification_email}`);
+    } catch (e: any) {
+      showToast('error', e.message || 'Failed to send test email');
+    } finally {
+      setTestingEmail(false);
+    }
   };
 
   const update = (key: string, value: string) => setSettings(prev => ({ ...prev, [key]: value }));
@@ -165,13 +185,24 @@ export default function SettingsPage() {
           <p className="settings-section-desc">Where to send HR alerts when application statuses change.</p>
           <div className="settings-field">
             <label className="form-label">HR Notification Email</label>
-            <input
-              className="form-input"
-              type="email"
-              placeholder="hr@yourcompany.com"
-              value={settings.notification_email || ''}
-              onChange={(e) => update('notification_email', e.target.value)}
-            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                className="form-input"
+                type="email"
+                placeholder="hr@yourcompany.com"
+                value={settings.notification_email || ''}
+                onChange={(e) => update('notification_email', e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <button
+                className="btn btn-secondary"
+                disabled={!settings.notification_email || testingEmail}
+                onClick={handleTestEmail}
+                style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+              >
+                {testingEmail ? 'Sending...' : 'Send Test'}
+              </button>
+            </div>
             <div className="form-hint">Receives alerts when candidates are shortlisted or accepted</div>
           </div>
         </div>
@@ -198,7 +229,7 @@ export default function SettingsPage() {
                   onClick={() => copy(item.value, item.key)}
                   style={{ flexShrink: 0 }}
                 >
-                  {copied === item.key ? <CheckCircle size={14} color="var(--accent-emerald)" /> : <Copy size={14} />}
+                  {copied === item.key ? <CircleCheck size={14} color="var(--accent-emerald)" /> : <Copy size={14} />}
                 </button>
               </div>
             ))}

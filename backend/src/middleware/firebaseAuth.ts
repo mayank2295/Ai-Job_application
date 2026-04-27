@@ -19,7 +19,7 @@ async function verifyFirebaseToken(idToken: string): Promise<FirebaseTokenPayloa
 
   // Use Firebase's token verification endpoint
   const response = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${process.env.VITE_FIREBASE_API_KEY || 'AIzaSyDLmjW36vhbyFFY8Q0JzkoHOYn1dlCwrHQ'}`,
+    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${process.env.FIREBASE_API_KEY || 'AIzaSyDLmjW36vhbyFFY8Q0JzkoHOYn1dlCwrHQ'}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -14,12 +14,19 @@ function getRazorpay(): Razorpay {
 }
 
 export const PLANS = {
-  candidate_pro: {
-    name: 'Candidate Pro',
-    amount: 100,         // INR 1/month in paise (for testing)
+  candidate_plus: {
+    name: 'Plus',
+    amount: 49900,       // INR 499/month in paise
     currency: 'INR',
     period: 'monthly',
-    features: ['Unlimited ATS scans', 'Unlimited mock interviews', 'Full career bot', 'Reputation score'],
+    features: ['100 ATS scans/month', '100 mock interviews/month', 'Full AI career bot', 'Resume builder', 'Skill assessments', 'Course finder'],
+  },
+  candidate_pro: {
+    name: 'Pro',
+    amount: 99900,       // INR 999/month in paise
+    currency: 'INR',
+    period: 'monthly',
+    features: ['Unlimited ATS scans', 'Unlimited mock interviews', 'Full AI career bot', 'Resume builder', 'Skill assessments', 'Reputation score', 'Priority support', 'Web search integration'],
   },
   recruiter_starter: {
     name: 'Recruiter Starter',

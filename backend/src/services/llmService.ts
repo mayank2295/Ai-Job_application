@@ -1,12 +1,12 @@
 /**
  * Smart LLM Router
- * Priority: Groq (fast + free) -> OpenRouter (fallback)
+ * Priority: OpenRouter (primary) -> Groq (fallback)
  *
  * Set in .env:
- *   GROQ_API_KEY=gsk_...          (get free at console.groq.com)
- *   GROQ_MODEL=llama-3.1-70b-versatile   (optional, this is the default)
- *   OPENROUTER_API_KEY=sk-or-...  (existing fallback)
- *   OPENROUTER_MODEL=openai/gpt-4o-mini
+ *   OPENROUTER_API_KEY=sk-or-...  (primary)
+ *   OPENROUTER_MODEL=openai/gpt-4o-mini  (optional, this is the default)
+ *   GROQ_API_KEY=gsk_...          (fallback if OpenRouter fails)
+ *   GROQ_MODEL=llama-3.3-70b-versatile   (optional, this is the default)
  */
 
 export interface LLMMessage {
@@ -132,7 +132,7 @@ async function callOpenRouter(
 // ─── Smart Router ─────────────────────────────────────────────────────────────
 
 /**
- * Main entry point. Tries Groq first (fast + free), falls back to OpenRouter.
+ * Main entry point. Tries OpenRouter first (primary), falls back to Groq.
  * Pass forceProvider to skip routing logic.
  */
 export async function callLLMSmart(
@@ -151,21 +151,20 @@ export async function callLLMSmart(
   if (forceProvider === 'openrouter') return callOpenRouter(messages, rest);
   if (forceProvider === 'groq') return callGroq(messages, rest);
 
-  // Try Groq first if key is set
-  if (process.env.GROQ_API_KEY) {
+  // Try OpenRouter first (primary)
+  if (process.env.OPENROUTER_API_KEY) {
     try {
-      const result = await callGroq(messages, rest);
-      console.log(`[LLM] Groq (${process.env.GROQ_MODEL || 'llama-3.1-70b-versatile'})`);
+      const result = await callOpenRouter(messages, rest);
+      console.log(`[LLM] OpenRouter (${process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini'})`);
       return result;
     } catch (err: any) {
-      // Rate limit (429) or quota — fall back to OpenRouter
-      console.warn(`[LLM] Groq failed (${err.message}), falling back to OpenRouter`);
+      console.warn(`[LLM] OpenRouter failed (${err.message}), falling back to Groq`);
     }
   }
 
-  // Fallback to OpenRouter
-  console.log(`[LLM] OpenRouter (${process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini'})`);
-  return callOpenRouter(messages, rest);
+  // Fallback to Groq
+  console.log(`[LLM] Groq fallback (${process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'})`);
+  return callGroq(messages, rest);
 }
 
 // ─── Streaming (OpenRouter only — Groq streaming needs SSE parsing) ───────────

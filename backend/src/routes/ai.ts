@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { callLLMSmart } from '../services/llmService';
 
 const router = Router();
 
@@ -6,7 +7,7 @@ const SYSTEM_PROMPT = `You are a helpful AI assistant. Answer general questions 
 
 /**
  * POST /api/ai/chat
- * Proxy to Anthropic API directly using the supplied Claude key.
+ * General-purpose chat using the shared LLM router (Groq -> OpenRouter fallback).
  */
 router.post('/chat', async (req: Request, res: Response) => {
   try {
@@ -20,52 +21,25 @@ router.post('/chat', async (req: Request, res: Response) => {
       .filter((m: any) => m && typeof m === 'object')
       .map((m: any) => {
         const role = m.role === 'model' || m.role === 'assistant' ? 'assistant' : 'user';
-        const text = String(m.parts?.[0]?.text ?? m.text ?? '').trim();
-        return { role, content: text };
+        const text = String(m.parts?.[0]?.text ?? m.text ?? m.content ?? '').trim();
+        return { role: role as 'user' | 'assistant', content: text };
       })
-      .filter((m: any) => m.content.length > 0);
+      .filter((m) => m.content.length > 0);
 
     if (normalized.length === 0) {
       res.status(400).json({ error: 'messages must include at least one non-empty message' });
       return;
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      res.status(500).json({ error: 'Anthropic API key not configured' });
-      return;
-    }
-
-    const maxHistoryRaw = Number(process.env.AI_MAX_HISTORY || 20);
-    const maxHistory = Number.isFinite(maxHistoryRaw) && maxHistoryRaw > 0 ? maxHistoryRaw : 20;
+    const maxHistory = Number(process.env.AI_MAX_HISTORY) || 20;
     const recentMessages = normalized.slice(-maxHistory);
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: process.env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307',
-        max_tokens: 1024,
-        system: SYSTEM_PROMPT,
-        messages: recentMessages,
-        temperature: 0.7,
-      }),
-    });
+    const data = await callLLMSmart([
+      { role: 'system', content: SYSTEM_PROMPT },
+      ...recentMessages,
+    ]);
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('Anthropic API error:', errText);
-      res.status(500).json({ error: 'Anthropic API request failed', details: errText });
-      return;
-    }
-
-    const data: any = await response.json();
-    const text = data.content?.[0]?.text ?? 'Sorry, I could not process that. Please try again.';
-
+    const text = data.choices?.[0]?.message?.content ?? 'Sorry, I could not process that. Please try again.';
     res.json({ text });
   } catch (error: any) {
     console.error('AI chat error:', error);
@@ -73,8 +47,8 @@ router.post('/chat', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/ai/health - Health check
-router.get('/health', async (_req: Request, res: Response) => {
+// GET /api/ai/health
+router.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 

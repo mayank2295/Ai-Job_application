@@ -33,6 +33,7 @@ const pageTitles: Record<string, string> = {
   '/web-search': 'Web Search',
   '/billing': 'Billing & Plans',
   '/settings': 'Settings',
+  '/resume-builder': 'Resume Builder',
 };
 
 interface NavbarProps {

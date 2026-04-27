@@ -7,7 +7,7 @@ import {
   Briefcase,
   FileText,
   Upload,
-  CheckCircle,
+  CircleCheck,
   ArrowRight,
   ArrowLeft,
   Sparkles,
@@ -19,7 +19,7 @@ const steps = [
   { label: 'Personal Info', icon: User },
   { label: 'Position', icon: Briefcase },
   { label: 'Resume', icon: Upload },
-  { label: 'Review', icon: CheckCircle },
+  { label: 'Review', icon: CircleCheck },
 ];
 
 const positions = [
@@ -148,7 +148,7 @@ export default function ApplyPage() {
           <div className="apply-card">
             <div className="success-container">
               <div className="success-icon">
-                <CheckCircle />
+                <CircleCheck />
               </div>
               <h2 className="success-title">Application Submitted! 🎉</h2>
               <p className="success-message">
@@ -202,7 +202,7 @@ export default function ApplyPage() {
             <div key={step.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div className={`form-step ${i === currentStep ? 'active' : i < currentStep ? 'completed' : ''}`}>
                 <div className="form-step-circle">
-                  {i < currentStep ? <CheckCircle size={16} /> : i + 1}
+                  {i < currentStep ? <CircleCheck size={16} /> : i + 1}
                 </div>
                 <span className="form-step-label">{step.label}</span>
               </div>

@@ -98,6 +98,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ messages }),
     }),
+
+  // CareerBot chat (uses OpenRouter/Groq — the working endpoint)
+  chatWithCareerBot: (messages: any[]) =>
+    request<{ reply: string; courses?: any[]; profiles?: any[]; events?: any[] }>('/careerbot/chat', {
+      method: 'POST',
+      body: JSON.stringify({ messages }),
+    }),
   startInterview: (payload: { jobId?: string; resumeText: string; candidateId?: string }) =>
     fetch(`${API_BASE}/ai/interview/start`, {
       method: 'POST',
@@ -135,4 +142,25 @@ export const api = {
 
   getAdminSubscriptionStats: () =>
     request<{ stats: any }>('/admin/subscriptions/stats'),
+
+  // Conversations (CareerBot chat sessions)
+  getConversations: (userId: string, botType: string = 'career') =>
+    request<any[]>(`/careerbot/sessions?user_id=${encodeURIComponent(userId)}&bot_type=${encodeURIComponent(botType)}`),
+
+  createConversation: (data: { id: string; user_id: string; bot_type: string; title?: string; messages?: any[] }) =>
+    request<any>('/careerbot/sessions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateConversation: (data: { id: string; user_id: string; bot_type: string; title?: string; messages?: any[] }) =>
+    request<any>('/careerbot/sessions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  deleteConversation: (id: string) =>
+    request<{ success: boolean }>(`/careerbot/sessions/${id}`, {
+      method: 'DELETE',
+    }),
 };

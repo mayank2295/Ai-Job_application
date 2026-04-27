@@ -41,4 +41,30 @@ router.put('/', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/settings/test-email — send a test HR notification email
+router.post('/test-email', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      res.status(400).json({ error: 'email is required' });
+      return;
+    }
+
+    const { sendNewApplicationEmailToHR } = await import('../services/emailService');
+    await sendNewApplicationEmailToHR(
+      email,
+      'Test Candidate',
+      'test@example.com',
+      'Software Engineer (Test)',
+      'test-application-id',
+      '+91 98765 43210'
+    );
+
+    res.json({ success: true, message: `Test email sent to ${email}` });
+  } catch (error: any) {
+    console.error('Test email error:', error);
+    res.status(500).json({ error: error.message || 'Failed to send test email' });
+  }
+});
+
 export default router;

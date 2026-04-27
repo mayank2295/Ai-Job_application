@@ -1,10 +1,9 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FileText, Briefcase, Users, Bot,
-  Settings, LogOut, Zap, User, BookOpen, Globe, CheckSquare,
-  Mic, BarChart2, CreditCard
-} from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+  Settings, LogOut, Zap, User, BookOpen, Globe, SquareCheck,
+  Mic, ChartBar, CreditCard, BarChart2
+} from 'lucide-react';import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
   isMobileMenuOpen?: boolean;
@@ -62,11 +61,9 @@ export default function Sidebar({
               {link('/admin/subscriptions', CreditCard, 'Subscriptions')}
               <span className="sidebar-section-title">Tools</span>
               {link('/admin/career-bot', Bot, 'AI Chat')}
-              {link('/admin/ats-resume', CheckSquare, 'ATS Analyzer')}
-              {link('/admin/skill-assessment', BarChart2, 'Skill Assessment')}
-              {link('/admin/settings', Settings, 'Settings')}
+              {link('/admin/candidate-analytics', BarChart2, 'Candidate Analytics')}
               <span className="sidebar-section-title">Account</span>
-              {link('/billing', CreditCard, 'Billing')}
+              {link('/admin/settings', Settings, 'Settings')}
             </>
           ) : (
             <>
@@ -78,12 +75,14 @@ export default function Sidebar({
               <span className="sidebar-section-title">AI Tools</span>
               {link('/career-bot', Bot, 'AI Chat')}
               {link('/interview', Mic, 'Mock Interview')}
-              {link('/ats-resume', CheckSquare, 'ATS Analyzer')}
-              {link('/skill-assessment', BarChart2, 'Skill Assessment')}
+              {link('/ats-resume', SquareCheck, 'ATS Analyzer')}
+              {link('/skill-assessment', ChartBar, 'Skill Assessment')}
+              {link('/resume-builder', FileText, 'Resume Builder')}
               {link('/courses', BookOpen, 'Find Courses')}
               {link('/web-search', Globe, 'Web Search')}
               <span className="sidebar-section-title">Account</span>
               {link('/billing', CreditCard, 'Billing')}
+              {link('/settings', Settings, 'Settings')}
             </>
           )}
         </nav>

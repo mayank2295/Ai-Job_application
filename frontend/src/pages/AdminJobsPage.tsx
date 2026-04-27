@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, X } from 'lucide-react';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3001/api' : 'https://ai-job-application-1.onrender.com/api')).replace(/\/$/, '');
 
@@ -94,7 +94,7 @@ export default function AdminJobsPage() {
                 </button>
                 <button onClick={() => openEdit(job)} title="Edit"
                   style={{ width: 34, height: 34, border: '1px solid var(--border-primary)', borderRadius: 8, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-                  <Edit2 size={15} />
+                  <Pencil size={15} />
                 </button>
                 <button onClick={() => deleteJob(job.id)} title="Delete"
                   style={{ width: 34, height: 34, border: '1px solid rgba(244,63,94,0.3)', borderRadius: 8, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f43f5e' }}>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, ExternalLink, Loader2 } from 'lucide-react';
+import { Search, ExternalLink, LoaderCircle } from 'lucide-react';
 import { webSearch } from '../lib/careerbot-api';
 
 export default function WebSearchTab() {
@@ -34,7 +34,7 @@ export default function WebSearchTab() {
           placeholder="Search for news, tutorials, market data, or anything else..."
           style={{ flex: 1, padding: '14px 18px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 15, outline: 'none' }} />
         <button onClick={run} disabled={!query.trim() || loading} className="btn btn-primary" style={{ padding: '10px 20px' }}>
-          {loading ? <Loader2 size={16} className="spin" /> : <Search size={16} />}
+          {loading ? <LoaderCircle size={16} className="spin" /> : <Search size={16} />}
         </button>
       </div>
 
@@ -52,7 +52,7 @@ export default function WebSearchTab() {
 
       {loading && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-muted)', fontSize: 14 }}>
-          <Loader2 size={18} className="spin" /> Searching the web…
+          <LoaderCircle size={18} className="spin" /> Searching the web…
         </div>
       )}
 

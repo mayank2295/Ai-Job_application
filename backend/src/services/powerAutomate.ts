@@ -30,9 +30,8 @@ export class PowerAutomateService {
   }): Promise<TriggerResult> {
     const flowUrl = (await this.getSettingValue('pa_new_application_url')) || process.env.PA_NEW_APPLICATION_FLOW_URL;
 
-    if (!flowUrl) {
-      console.log('⚠️  Power Automate URL not configured for New Application flow. Skipping trigger.');
-      await this.logWorkflow(applicationData.id, 'instant', 'New Application Notification', 'failed', null, null, 'Flow URL not configured');
+    if (!flowUrl || flowUrl.trim() === '') {
+      // n8n not configured — emails are sent via SendGrid directly in applications.ts
       return { success: false, error: 'Flow URL not configured' };
     }
 

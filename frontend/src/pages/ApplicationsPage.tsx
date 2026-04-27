@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, FileText, PlusCircle, ChevronLeft, ChevronRight, CheckSquare, Square } from 'lucide-react';
+import { Search, FileText, CirclePlus, ChevronLeft, ChevronRight, SquareCheck, Square } from 'lucide-react';
 import { api } from '../api/client';
 import type { Application } from '../types';
 
@@ -85,7 +85,7 @@ export default function ApplicationsPage() {
           <p>{total} total applications</p>
         </div>
         <button className="btn btn-primary" onClick={() => navigate('/apply')}>
-          <PlusCircle size={16} /> New Application
+          <CirclePlus size={16} /> New Application
         </button>
       </div>
 
@@ -163,7 +163,7 @@ export default function ApplicationsPage() {
               <tr>
                 <th style={{ width: 40 }}>
                   <button onClick={toggleAll} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
-                    {allSelected ? <CheckSquare size={16} color="var(--accent-primary)" /> : <Square size={16} />}
+                    {allSelected ? <SquareCheck size={16} color="var(--accent-primary)" /> : <Square size={16} />}
                   </button>
                 </th>
                 <th>Applicant</th>
@@ -179,7 +179,7 @@ export default function ApplicationsPage() {
                 <tr key={app.id} style={{ background: selected.has(app.id) ? 'rgba(99,102,241,0.06)' : undefined }}>
                   <td onClick={(e) => { e.stopPropagation(); toggleSelect(app.id); }} style={{ cursor: 'pointer' }}>
                     {selected.has(app.id)
-                      ? <CheckSquare size={16} color="var(--accent-primary)" />
+                      ? <SquareCheck size={16} color="var(--accent-primary)" />
                       : <Square size={16} color="var(--text-muted)" />}
                   </td>
                   <td onClick={() => navigate(`/admin/applications/${app.id}`)}>

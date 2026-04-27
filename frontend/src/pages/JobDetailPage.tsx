@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Banknote, Building2, CheckCircle2, ArrowLeft, Upload, X } from 'lucide-react';
+import { MapPin, Banknote, Building2, CircleCheck, ArrowLeft, Upload, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { extractPdfText } from '../lib/careerbot-api';
 import { api } from '../api/client';
@@ -125,7 +125,7 @@ export default function JobDetailPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {reqs.map((r, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                    <CheckCircle2 size={16} color="var(--accent-emerald)" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <CircleCheck size={16} color="var(--accent-emerald)" style={{ flexShrink: 0, marginTop: 2 }} />
                     <span style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{r}</span>
                   </div>
                 ))}
@@ -138,7 +138,7 @@ export default function JobDetailPage() {
         <div className="card" style={{ position: 'sticky', top: 20 }}>
           {submitted ? (
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <CheckCircle2 size={48} color="var(--accent-emerald)" style={{ margin: '0 auto 16px' }} />
+              <CircleCheck size={48} color="var(--accent-emerald)" style={{ margin: '0 auto 16px' }} />
               <h3 style={{ color: 'var(--text-primary)', marginBottom: 8 }}>Application Submitted!</h3>
               <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>We'll review your application and get back to you soon.</p>
               <button className="btn btn-secondary btn-sm" style={{ marginTop: 16, width: '100%', justifyContent: 'center' }} onClick={() => navigate('/my-applications')}>View My Applications</button>

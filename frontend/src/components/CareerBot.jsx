@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { extractPdfText, runAgent, analyzeATS, findCoursesOnline, callLLM, loadSessions, saveSession, deleteSession, createSession, renderMarkdown, optimizeLinkedin } from "../lib/careerbot-api";
 import WebSearchTab from "./WebSearchTab";
 import { useAuth } from "../context/AuthContext";
@@ -40,7 +40,7 @@ Response strategy:
 Rules:
 - ALWAYS use the web_search tool when the user asks to "search online", asks for current events, latest salaries, job trends, or real-time data.
 - Use find_courses when the user wants to learn a skill
-- Use scrape_profiles when user asks for people, experts, or LinkedIn profiles
+- Use scrape_profiles when user asks for people, experts, or Link2 profiles
 - Format responses with markdown: bold key points, use bullet lists, use code blocks for code
 - Be clear, confident, and practical - never robotic
 - If unsure, say so clearly and suggest how the user can verify`;
@@ -50,6 +50,7 @@ Rules:
   const userId = user?.id || user?.firebaseUser?.uid || 'anonymous';
 
   const [tab, setTab] = useState(initialTab);
+  const [hoveredSessionId, setHoveredSessionId] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
@@ -301,12 +302,20 @@ Rules:
         </div>
         <div className="cb-sessions-list">
           {sessions.map(s => (
-            <button key={s.id} className={`cb-session-item ${s.id === activeSessionId ? "active" : ""}`} onClick={() => switchSession(s.id)}>
+            <button key={s.id} className={`cb-session-item ${s.id === activeSessionId ? "active" : ""}`} onClick={() => switchSession(s.id)} style={{position:"relative"}}
+              onMouseEnter={() => setHoveredSessionId(s.id)}
+              onMouseLeave={() => setHoveredSessionId(null)}
+            >
               <div className="title">{s.title}</div>
-              <div className="time" style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <span>{new Date(s.updatedAt).toLocaleDateString()}</span>
-                {sessions.length > 1 && <span onClick={(e) => { e.stopPropagation(); handleDeleteSession(s.id); }} style={{cursor:"pointer",color:"var(--accent-rose)",fontSize:12}}>✕</span>}
-              </div>
+              <div className="time">{new Date(s.updatedAt).toLocaleDateString()}</div>
+              {sessions.length > 1 && hoveredSessionId === s.id && (
+                <span
+                  className="cb-session-delete"
+                  onClick={(e) => { e.stopPropagation(); handleDeleteSession(s.id); }}
+                >
+                  &#x2715;
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -365,7 +374,7 @@ Rules:
                 <h3>Ready to help your career</h3>
                 <p>Ask anything · Upload your resume · Find courses · Get career advice</p>
                 <div className="cb-quick-prompts">
-                  {["Analyze my resume for ATS","Find Python courses","Hot tech skills in 2025?","Interview tips for SDE", "LinkedIn Optimizer"].map(q => (
+                  {["Analyze my resume for ATS","Find Python courses","Hot tech skills in 2025?","Interview tips for SDE"].map(q => (
                     <button key={q} className="cb-quick-prompt" onClick={() => setInput(q)}>{q}</button>
                   ))}
                 </div>
@@ -394,14 +403,7 @@ Rules:
                       {m.role === "assistant" && <button className="cb-msg-action-btn" onClick={() => copyText(m.content)} title="Copy">📋</button>}
                     </div>
                   </div>
-                  {/* Quick actions after assistant messages */}
-                  {m.role === "assistant" && i === messages.length - 1 && !loading && (
-                    <div className="cb-quick-actions">
-                      <button className="cb-quick-action" onClick={() => setInput("Tell me more about this")}>Tell me more</button>
-                      <button className="cb-quick-action" onClick={() => setInput("Find courses for this topic")}>Find courses</button>
-                      <button className="cb-quick-action" onClick={() => { setTab("resume"); }}>Analyze resume</button>
-                    </div>
-                  )}
+                  {/* Quick actions removed — user can navigate to dedicated sections */}
                 </div>
               </div>
             ))}
@@ -443,78 +445,136 @@ Rules:
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
             </div>
-            <div style={{ display: "flex", gap: 6, padding: "8px 10px 0" }}>
-              <button className="cb-quick-action" onClick={() => setInput("LinkedIn Optimizer")}>LinkedIn Optimizer</button>
-            </div>
             <input ref={fileRef} type="file" accept=".pdf,.txt,.doc,.docx" style={{display:"none"}} onChange={e => handleFile(e.target.files[0])} />
           </div>
-          {input.toLowerCase().includes("linkedin optimizer") && (
-            <div className="card" style={{ margin: 12 }}>
-              <h4>What role are you targeting?</h4>
-              <input value={linkedinRole} onChange={(e) => setLinkedinRole(e.target.value)} placeholder="e.g. Senior Frontend Engineer" />
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={async () => {
-                  const text = chatDocuments[0]?.text || resume?.text || "";
-                  if (!text || !linkedinRole.trim()) return;
-                  const out = await optimizeLinkedin(text, linkedinRole.trim());
-                  setLinkedinResult(out);
-                }}
-              >
-                Generate
-              </button>
-              {linkedinResult && (
-                <div>
-                  <h5>Headline ({linkedinResult.headline.length}/120)</h5>
-                  <p>{linkedinResult.headline}</p>
-                  <h5>About Section</h5>
-                  <p>{linkedinResult.aboutSection}</p>
-                  <h5>Top Skills</h5>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{linkedinResult.topSkills.map((s) => <span className="cb-tag" key={s}>{s}</span>)}</div>
-                  <h5>Tips</h5>
-                  <ol>{linkedinResult.tips.map((t, i) => <li key={i}>{t}</li>)}</ol>
-                </div>
-              )}
-            </div>
-          )}
         </>)}
 
         {/* ATS Resume Tab */}
         {tab === "resume" && (
           <div className="cb-ats-panel">
-            <h2>ATS Resume Analyzer</h2>
-            <p className="subtitle">Upload your resume and optionally add a job description for targeted scoring.</p>
-            {!resume ? (
-              <div className="cb-dropzone" onClick={() => fileRef.current?.click()} onDrop={e => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); }} onDragOver={e => e.preventDefault()}>
-                <div style={{fontSize:40,marginBottom:12}}>📄</div>
-                <div style={{fontSize:15,fontWeight:700,color:"var(--text-secondary)"}}>Drop your resume here</div>
-                <div style={{fontSize:12,color:"var(--text-muted)",marginTop:6}}>or click to browse · PDF, TXT, DOC</div>
-              </div>
-            ) : (
-              <div className="cb-file-card">
-                <div style={{display:"flex",alignItems:"center",gap:12}}>
-                  <span style={{fontSize:24}}>📄</span>
-                  <div>
-                    <div style={{fontSize:13,fontWeight:700,color:"var(--text-primary)"}}>{resume.name}</div>
-                    <div style={{fontSize:11,color:"var(--text-muted)"}}>{Math.round(resume.text.length/5)} words</div>
-                  </div>
+            {/* Header */}
+            <div style={{marginBottom:24}}>
+              <h2 style={{fontSize:20,fontWeight:700,color:"var(--text-primary)",margin:"0 0 6px"}}>ATS Resume Analyzer</h2>
+              <p style={{fontSize:13,color:"var(--text-muted)",margin:0}}>
+                Upload your resume and the job description to get a precise ATS compatibility score.
+              </p>
+            </div>
+
+            {/* Two-column upload area */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20}}>
+
+              {/* Resume upload */}
+              <div style={{
+                border:`2px dashed ${resume ? "#6366f1" : "var(--border-primary)"}`,
+                borderRadius:12, padding:24, background: resume ? "rgba(99,102,241,0.04)" : "var(--bg-tertiary)",
+                cursor:"pointer", transition:"all 0.15s", position:"relative",
+              }}
+                onClick={() => !resume && fileRef.current?.click()}
+                onDrop={e => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); }}
+                onDragOver={e => e.preventDefault()}
+              >
+                <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:"var(--text-muted)",marginBottom:12}}>
+                  Resume / CV <span style={{color:"var(--accent-rose)"}}>*</span>
                 </div>
-                <button className="btn btn-sm btn-danger" onClick={() => { setResume(null); setAtsData(null); }}>Remove</button>
+                {resume ? (
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{
+                      width:40,height:40,borderRadius:8,background:"rgba(99,102,241,0.1)",
+                      display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,
+                    }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:600,color:"var(--text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{resume.name}</div>
+                      <div style={{fontSize:11,color:"var(--text-muted)",marginTop:2}}>{Math.round(resume.text.length/5)} words extracted</div>
+                    </div>
+                    <button onClick={e => { e.stopPropagation(); setResume(null); setAtsData(null); }}
+                      style={{background:"none",border:"none",cursor:"pointer",color:"var(--accent-rose)",padding:4,flexShrink:0}}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{textAlign:"center",padding:"8px 0"}}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5" style={{margin:"0 auto 10px",display:"block"}}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <div style={{fontSize:13,fontWeight:600,color:"var(--text-secondary)",marginBottom:4}}>Upload Resume</div>
+                    <div style={{fontSize:11,color:"var(--text-muted)"}}>PDF, DOC, TXT - drag or click</div>
+                  </div>
+                )}
+              </div>
+
+              {/* JD upload / paste */}
+              <div style={{
+                border:`2px dashed ${jobDesc ? "#10b981" : "var(--border-primary)"}`,
+                borderRadius:12, padding:24, background: jobDesc ? "rgba(16,185,129,0.04)" : "var(--bg-tertiary)",
+                transition:"all 0.15s", display:"flex", flexDirection:"column",
+              }}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                  <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:"var(--text-muted)"}}>
+                    Job Description <span style={{color:"var(--accent-rose)"}}>*</span>
+                  </div>
+                  <button
+                    onClick={() => jdFileRef.current?.click()}
+                    style={{
+                      fontSize:11,fontWeight:600,color:"var(--accent-primary)",background:"rgba(99,102,241,0.08)",
+                      border:"1px solid rgba(99,102,241,0.2)",borderRadius:6,padding:"3px 10px",cursor:"pointer",
+                    }}
+                  >
+                    Upload JD
+                  </button>
+                </div>
+                <textarea
+                  value={jobDesc}
+                  onChange={e => setJobDesc(e.target.value)}
+                  placeholder="Paste the job description here...&#10;&#10;Include the role requirements, responsibilities, and required skills for the most accurate ATS score."
+                  style={{
+                    flex:1, minHeight:100, border:"none", outline:"none", background:"transparent",
+                    color:"var(--text-primary)", fontSize:12, lineHeight:1.6, resize:"none",
+                    fontFamily:"inherit",
+                  }}
+                />
+                {jobDesc && (
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8,paddingTop:8,borderTop:"1px solid var(--border-primary)"}}>
+                    <span style={{fontSize:11,color:"var(--accent-emerald)",fontWeight:600}}>✓ JD loaded ({jobDesc.length} chars)</span>
+                    <button onClick={() => setJobDesc("")} style={{fontSize:11,color:"var(--text-muted)",background:"none",border:"none",cursor:"pointer"}}>Clear</button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Info banner when JD is missing */}
+            {resume && !jobDesc && (
+              <div style={{
+                padding:"10px 14px",borderRadius:8,marginBottom:16,
+                background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",
+                display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#b45309",
+              }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Add a job description for a targeted ATS score. Without it, analysis will be generic.
               </div>
             )}
+
+            {/* Analyze button */}
             {resume && (
-              <button className="btn btn-primary" onClick={handleAnalyze} disabled={atsLoading} style={{marginBottom:28}}>
-                {atsLoading ? "⏳ Analyzing..." : "⚡ Analyze Resume"}
+              <button
+                className="btn btn-primary"
+                onClick={handleAnalyze}
+                disabled={atsLoading}
+                style={{marginBottom:28, minWidth:180}}
+              >
+                {atsLoading ? "Analyzing..." : jobDesc ? "Analyze Against JD" : "Analyze Resume"}
               </button>
             )}
+
+            {/* Results */}
             {atsData && (
               <div style={{animation:"cb-fadeUp 0.4s ease"}}>
                 <div className="cb-scores-grid">
-                  <ScoreRing score={atsData.overall_score} size={96} color={scoreColor(atsData.overall_score)} label="Overall ATS" />
-                  <ScoreRing score={atsData.keyword_score} size={72} color="var(--accent-cyan)" label="Keywords" />
-                  <ScoreRing score={atsData.format_score} size={72} color="var(--accent-secondary)" label="Format" />
-                  <ScoreRing score={atsData.content_score} size={72} color="var(--accent-emerald)" label="Content" />
-                  <ScoreRing score={atsData.impact_score} size={72} color="var(--accent-amber)" label="Impact" />
+                  <ScoreRing score={atsData.overall_score} size={96} color={scoreColor(atsData.overall_score)} label="Overall /100" />
+                  <ScoreRing score={atsData.keyword_score} size={72} color="var(--accent-cyan)" label="Keywords /30" />
+                  <ScoreRing score={atsData.format_score} size={72} color="var(--accent-secondary)" label="Format /20" />
+                  <ScoreRing score={atsData.content_score} size={72} color="var(--accent-emerald)" label="Content /25" />
+                  <ScoreRing score={atsData.impact_score} size={72} color="var(--accent-amber)" label="Impact /15" />
+                  {atsData.experience_match != null && <ScoreRing score={atsData.experience_match} size={72} color="var(--accent-rose)" label="Exp Match /10" />}
                 </div>
                 {atsData.summary && (
                   <div className="cb-result-card" style={{marginBottom:16}}>
@@ -524,16 +584,17 @@ Rules:
                   </div>
                 )}
                 <div className="cb-results-grid">
-                  <div className="cb-result-card"><h4 style={{color:"var(--accent-emerald)"}}>✅ STRENGTHS</h4>{(atsData.strengths||[]).map((s,i) => <p key={i} style={{fontSize:12,color:"var(--text-secondary)",lineHeight:1.6,marginBottom:6}}>• {s}</p>)}</div>
-                  <div className="cb-result-card"><h4 style={{color:"var(--accent-rose)"}}>🔧 IMPROVEMENTS</h4>{(atsData.improvements||[]).map((s,i) => <p key={i} style={{fontSize:12,color:"var(--text-secondary)",lineHeight:1.6,marginBottom:6}}>• {s}</p>)}</div>
+                  <div className="cb-result-card"><h4 style={{color:"var(--accent-emerald)"}}>STRENGTHS</h4>{(atsData.strengths||[]).map((s,i) => <p key={i} style={{fontSize:12,color:"var(--text-secondary)",lineHeight:1.6,marginBottom:6}}>• {s}</p>)}</div>
+                  <div className="cb-result-card"><h4 style={{color:"var(--accent-rose)"}}>IMPROVEMENTS</h4>{(atsData.improvements||[]).map((s,i) => <p key={i} style={{fontSize:12,color:"var(--text-secondary)",lineHeight:1.6,marginBottom:6}}>• {s}</p>)}</div>
                 </div>
                 <div className="cb-results-grid">
-                  <div className="cb-result-card"><h4 style={{color:"var(--accent-secondary)"}}>🛠 TOP SKILLS</h4><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{(atsData.top_skills||[]).map((s,i) => <span key={i} className="cb-tag" style={{background:"rgba(139,92,246,0.1)",borderColor:"rgba(139,92,246,0.2)",color:"var(--accent-secondary)"}}>{s}</span>)}</div></div>
-                  <div className="cb-result-card"><h4 style={{color:"var(--accent-amber)"}}>❌ MISSING KEYWORDS</h4><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{(atsData.missing_keywords||[]).map((s,i) => <span key={i} className="cb-tag" style={{background:"rgba(245,158,11,0.1)",borderColor:"rgba(245,158,11,0.2)",color:"var(--accent-amber)"}}>{s}</span>)}</div></div>
+                  <div className="cb-result-card"><h4 style={{color:"var(--accent-secondary)"}}>TOP SKILLS</h4><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{(atsData.top_skills||[]).map((s,i) => <span key={i} className="cb-tag" style={{background:"rgba(139,92,246,0.1)",borderColor:"rgba(139,92,246,0.2)",color:"var(--accent-secondary)"}}>{s}</span>)}</div></div>
+                  <div className="cb-result-card"><h4 style={{color:"var(--accent-amber)"}}>MISSING KEYWORDS</h4><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{(atsData.missing_keywords||[]).map((s,i) => <span key={i} className="cb-tag" style={{background:"rgba(245,158,11,0.1)",borderColor:"rgba(245,158,11,0.2)",color:"var(--accent-amber)"}}>{s}</span>)}</div></div>
                 </div>
               </div>
             )}
             <input ref={fileRef} type="file" accept=".pdf,.txt,.doc,.docx" style={{display:"none"}} onChange={e => handleFile(e.target.files[0])} />
+            <input ref={jdFileRef} type="file" accept=".pdf,.txt,.doc,.docx" style={{display:"none"}} onChange={e => handleJDFile(e.target.files[0])} />
           </div>
         )}
 

@@ -9,6 +9,7 @@ import { useAuth } from './context/AuthContext';
 
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+import { ToastProvider } from './components/ui/Toast';
 
 // Shared pages
 import CareerBotPage from './pages/CareerBotPage';
@@ -22,6 +23,7 @@ import WorkflowsPage from './pages/WorkflowsPage';
 import ActivityPage from './pages/ActivityPage';
 import AdminJobsPage from './pages/AdminJobsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import AdminCandidateAnalyticsPage from './pages/AdminCandidateAnalyticsPage';
 import AdminSubscriptionsPage from './pages/AdminSubscriptionsPage';
 
 // Candidate pages
@@ -35,6 +37,8 @@ import ProfilePage from './pages/ProfilePage';
 import InterviewPage from './pages/InterviewPage';
 import SkillAssessmentPage from './pages/SkillAssessmentPage';
 import BillingPage from './pages/BillingPage';
+import ResumeBuilderPage from './pages/ResumeBuilderPage';
+import CandidateSettingsPage from './pages/CandidateSettingsPage';
 function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isAdmin } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(() => {
@@ -90,6 +94,7 @@ function CandidateRoot() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ToastProvider>
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
@@ -112,6 +117,7 @@ export default function App() {
                 <Route path="workflows" element={<WorkflowsPage />} />
                 <Route path="activity" element={<ActivityPage />} />
                 <Route path="career-bot" element={<CareerBotPage />} />
+                <Route path="candidate-analytics" element={<AdminCandidateAnalyticsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="ats-resume" element={<AtsResumePage />} />
                 <Route path="skill-assessment" element={<SkillAssessmentPage />} />
@@ -177,9 +183,19 @@ export default function App() {
             <AppLayout><WebSearchPage /></AppLayout>
           </ProtectedRoute>
         } />
+        <Route path="/resume-builder" element={
+          <ProtectedRoute requiredRole="candidate">
+            <AppLayout><ResumeBuilderPage /></AppLayout>
+          </ProtectedRoute>
+        } />
         <Route path="/billing" element={
           <ProtectedRoute>
             <AppLayout><BillingPage /></AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <AppLayout><CandidateSettingsPage /></AppLayout>
           </ProtectedRoute>
         } />
 
@@ -191,6 +207,7 @@ export default function App() {
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </ToastProvider>
     </BrowserRouter>
   );
 }

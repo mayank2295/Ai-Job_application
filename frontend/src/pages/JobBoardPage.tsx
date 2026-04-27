@@ -79,7 +79,7 @@ export default function JobBoardPage() {
         </button>
       </div>
 
-      {/* Search + Filter */}
+      {/* Search + filter */}
       <div className="job-board-toolbar">
         <div className="job-board-search-wrap">
           <Search size={16} className="job-board-search-icon" />

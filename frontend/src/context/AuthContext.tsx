@@ -104,7 +104,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     if (!user?.firebaseUser) return;
-    await buildAndSetUser(user.firebaseUser);
+    try {
+      const res = await fetch(
+        `${API_BASE}/users/me?firebase_uid=${encodeURIComponent(user.firebaseUser.uid)}`
+      );
+      if (!res.ok) throw new Error(`Failed to refresh: ${res.status}`);
+      const data = await res.json();
+      setUser(buildAppUser(user.firebaseUser, data.user));
+    } catch (err) {
+      console.warn('refreshUser failed, falling back to sync:', err);
+      await buildAndSetUser(user.firebaseUser);
+    }
   };
 
   useEffect(() => {

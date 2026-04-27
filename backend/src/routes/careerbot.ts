@@ -107,13 +107,90 @@ router.post('/analyze-ats', async (req: Request, res: Response): Promise<void> =
   try {
     const { resumeText, jobDesc } = req.body;
     if (!resumeText) { res.status(400).json({ error: "resumeText is required." }); return; }
-    const prompt = `You are an expert ATS analyst.\n${jobDesc ? `Job Description:\n${String(jobDesc).slice(0, 800)}\n\n` : ""}Resume:\n${String(resumeText).slice(0, 3500)}\n\nReturn ONLY raw JSON (no markdown): {"overall_score":<0-100>,"keyword_score":<0-100>,"format_score":<0-100>,"content_score":<0-100>,"impact_score":<0-100>,"experience_years":<int|null>,"top_skills":["..."],"missing_keywords":["..."],"strengths":["..."],"improvements":["..."],"summary":"..."}`;
+
+    const hasJD = jobDesc && String(jobDesc).trim().length > 50;
+
+    const systemPrompt = `You are a strict, senior ATS (Applicant Tracking System) evaluator used by Fortune 500 companies. You score resumes with NO leniency or inflation. A score of 70+ means the candidate is genuinely competitive. Most resumes score between 30-65. Be harsh and realistic.
+
+SCORING RUBRIC (total 100 points):
+
+1. keyword_score (0-30 points):
+   - Count exact keyword matches between resume and JD (skills, tools, technologies, certifications)
+   - Partial credit for synonyms (e.g. "JS" = "JavaScript")
+   - 0 points if no JD provided
+   - Formula: (matched_keywords / total_required_keywords) * 30
+   - Round down, never inflate
+
+2. format_score (0-20 points):
+   - 20: Clean single-column, standard sections (Experience, Education, Skills), no tables/graphics
+   - 15: Minor formatting issues
+   - 10: Two-column layout (ATS often fails to parse)
+   - 5: Heavy graphics, tables, or unusual structure
+   - 0: Image-based or completely unreadable
+
+3. content_score (0-25 points):
+   - 25: Strong action verbs, quantified achievements (%, $, numbers), clear impact
+   - 18: Some quantification, decent action verbs
+   - 12: Generic descriptions, no numbers
+   - 6: Vague, passive language, no achievements
+   - 0: Just a list of duties with no context
+
+4. impact_score (0-15 points):
+   - 15: 5+ quantified achievements with clear business impact
+   - 10: 2-4 quantified achievements
+   - 5: 1 quantified achievement
+   - 0: No quantified achievements
+
+5. experience_match (0-10 points):
+   - Compare required years of experience in JD vs candidate's actual experience
+   - 10: Meets or exceeds requirement
+   - 5: Within 1-2 years of requirement
+   - 0: Significantly under-qualified or no JD to compare
+
+overall_score = sum of all 5 components (max 100). DO NOT add bonus points. DO NOT round up.
+
+IMPORTANT RULES:
+- If no JD is provided, keyword_score = 0 and experience_match = 5 (neutral)
+- A fresh graduate with no experience should score 15-35 max
+- Missing required skills from JD must appear in missing_keywords
+- Be specific in improvements - name exact skills/sections to fix
+- experience_years: extract from resume text, null if unclear`;
+
+    const userPrompt = `${hasJD ? `JOB DESCRIPTION:\n${String(jobDesc).slice(0, 2000)}\n\n` : "NO JOB DESCRIPTION PROVIDED - score keyword_score as 0\n\n"}RESUME:\n${String(resumeText).slice(0, 4000)}
+
+Analyze strictly using the rubric. Return ONLY raw JSON (no markdown, no backticks):
+{
+  "overall_score": <0-100, sum of components>,
+  "keyword_score": <0-30>,
+  "format_score": <0-20>,
+  "content_score": <0-25>,
+  "impact_score": <0-15>,
+  "experience_match": <0-10>,
+  "experience_years": <number or null>,
+  "top_skills": ["skills found in resume that match JD"],
+  "missing_keywords": ["required skills/tools from JD NOT found in resume"],
+  "strengths": ["3-5 specific strengths with evidence from resume"],
+  "improvements": ["3-5 specific, actionable improvements with exact changes needed"],
+  "summary": "2-3 sentence honest assessment of fit for this role"
+}`;
+
     const data = await callLLM([
-      { role: "system", content: "You are an ATS expert. Respond ONLY with valid raw JSON, no markdown, no backticks." },
-      { role: "user", content: prompt },
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
     ]);
     const raw = data.choices[0].message.content.replace(/```json|```/g, "").trim();
-    res.json(JSON.parse(raw));
+    const parsed = JSON.parse(raw);
+
+    // Enforce score caps — never exceed rubric maximums
+    parsed.keyword_score = Math.min(30, Math.max(0, Math.round(parsed.keyword_score || 0)));
+    parsed.format_score = Math.min(20, Math.max(0, Math.round(parsed.format_score || 0)));
+    parsed.content_score = Math.min(25, Math.max(0, Math.round(parsed.content_score || 0)));
+    parsed.impact_score = Math.min(15, Math.max(0, Math.round(parsed.impact_score || 0)));
+    parsed.experience_match = Math.min(10, Math.max(0, Math.round(parsed.experience_match || 0)));
+    // Recalculate overall from components — never trust LLM's sum
+    parsed.overall_score = parsed.keyword_score + parsed.format_score + parsed.content_score + parsed.impact_score + parsed.experience_match;
+
+    res.json(parsed);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

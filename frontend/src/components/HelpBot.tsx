@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { HelpCircle, X, Send } from 'lucide-react';
+import { Info, X, Send } from 'lucide-react';
 import { callLLM, renderMarkdown, loadSessions, saveSession, createSession } from '../lib/careerbot-api';
 import { useAuth } from '../context/AuthContext';
 
@@ -97,7 +97,7 @@ export default function HelpBot() {
   if (!open) {
     return (
       <button className="help-bot-btn" onClick={() => setOpen(true)} title="Help">
-        <HelpCircle size={24} color="white" />
+        <Info size={24} color="white" />
       </button>
     );
   }
@@ -107,7 +107,7 @@ export default function HelpBot() {
       {/* Header */}
       <div className="help-bot-header">
         <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--gradient-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <HelpCircle size={16} color="white" />
+          <Info size={16} color="white" />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Help Assistant</div>

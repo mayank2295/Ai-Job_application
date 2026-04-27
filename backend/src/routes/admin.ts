@@ -125,4 +125,81 @@ router.get('/subscriptions/stats', async (_req: Request, res: Response): Promise
   }
 });
 
+// GET /api/admin/candidate-analytics — all candidates with their scores
+router.get('/candidate-analytics', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    // Candidates with their profile + verified skills + ATS scores
+    const users = await all<any>(
+      `SELECT
+         u.id, u.name, u.email, u.photo_url, u.skills, u.headline,
+         u.verified_skills, u.reputation_score, u.created_at,
+         COUNT(DISTINCT a.id) AS application_count,
+         ROUND(AVG(a.ai_score) FILTER (WHERE a.ai_score IS NOT NULL)::numeric, 1) AS avg_ai_score,
+         MAX(a.ai_score) AS best_ai_score
+       FROM users u
+       LEFT JOIN applications a ON (a.user_id = u.id OR a.email = u.email)
+       WHERE u.role = 'candidate'
+       GROUP BY u.id
+       ORDER BY u.created_at DESC`
+    );
+
+    // Interview sessions per candidate
+    const interviews = await all<any>(
+      `SELECT candidate_id,
+              COUNT(*) AS total,
+              ROUND(AVG(score)::numeric, 1) AS avg_score,
+              MAX(score) AS best_score
+       FROM interview_sessions
+       WHERE candidate_id IS NOT NULL AND score IS NOT NULL
+       GROUP BY candidate_id`
+    );
+    const interviewMap: Record<string, any> = {};
+    interviews.forEach((r: any) => { interviewMap[r.candidate_id] = r; });
+
+    // Quiz results per candidate (from quiz_results table if it exists)
+    let quizMap: Record<string, any> = {};
+    try {
+      const quizzes = await all<any>(
+        `SELECT user_id,
+                COUNT(*) AS total_attempts,
+                ROUND(AVG(score::numeric / NULLIF(total, 0) * 100), 1) AS avg_pct,
+                SUM(CASE WHEN passed THEN 1 ELSE 0 END) AS passed_count,
+                json_agg(json_build_object(
+                  'skill', skill,
+                  'score', score,
+                  'total', total,
+                  'passed', passed,
+                  'created_at', created_at
+                ) ORDER BY created_at DESC) AS attempts
+         FROM quiz_results
+         GROUP BY user_id`
+      );
+      quizzes.forEach((r: any) => { quizMap[r.user_id] = r; });
+    } catch {
+      // quiz_results table may not exist yet — migration pending
+    }
+
+    const result = users.map((u: any) => ({
+      ...u,
+      avg_ai_score: u.avg_ai_score !== null ? Number(u.avg_ai_score) : null,
+      best_ai_score: u.best_ai_score !== null ? Number(u.best_ai_score) : null,
+      application_count: Number(u.application_count) || 0,
+      verified_skills: Array.isArray(u.verified_skills) ? u.verified_skills : [],
+      interview_total: Number(interviewMap[u.id]?.total) || 0,
+      interview_avg_score: interviewMap[u.id]?.avg_score != null ? Number(interviewMap[u.id].avg_score) : null,
+      interview_best_score: interviewMap[u.id]?.best_score != null ? Number(interviewMap[u.id].best_score) : null,
+      quiz_total_attempts: Number(quizMap[u.id]?.total_attempts) || 0,
+      quiz_avg_pct: quizMap[u.id]?.avg_pct != null ? Number(quizMap[u.id].avg_pct) : null,
+      quiz_passed_count: Number(quizMap[u.id]?.passed_count) || 0,
+      quiz_attempts: quizMap[u.id]?.attempts || [],
+    }));
+
+    res.json({ candidates: result });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+
 export default router;

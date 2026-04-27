@@ -1,22 +1,46 @@
-import { Moon, Sun } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
+﻿import { useEffect, useState } from 'react';
+import { Sun, Moon } from 'lucide-react';
 
 export default function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
-  const isLight = theme === 'light';
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved === 'dark';
+    return !document.documentElement.hasAttribute('data-theme') ||
+      document.documentElement.getAttribute('data-theme') !== 'light';
+  });
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDark]);
+
+  // Apply saved theme on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+      setIsDark(false);
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      setIsDark(true);
+    }
+  }, []);
 
   return (
     <button
-      type="button"
       className="theme-toggle"
-      onClick={toggleTheme}
-      aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
-      title={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
+      onClick={() => setIsDark(v => !v)}
+      title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       <span className="theme-toggle-icon">
-        {isLight ? <Moon size={16} /> : <Sun size={16} />}
+        {isDark ? <Moon size={14} /> : <Sun size={14} />}
       </span>
-      <span className="theme-toggle-label">{isLight ? 'Dark' : 'Light'}</span>
+      <span className="theme-toggle-label">{isDark ? 'Dark' : 'Light'}</span>
     </button>
   );
 }

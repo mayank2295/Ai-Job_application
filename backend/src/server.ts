@@ -24,6 +24,7 @@ import healthRoutes from './routes/health';
 import gdprRoutes from './routes/gdpr';
 import billingRoutes from './routes/billing';
 import searchRoutes from './routes/search';
+import aiRoutes from './routes/ai';
 import { generalLimiter, aiLimiter, authLimiter, heavyAILimiter } from './middleware/rateLimiter';
 
 const app = express();
@@ -64,6 +65,7 @@ app.use('/api/careerbot', careerbotRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/ai', aiFeaturesRoutes);
+app.use('/api/ai', aiRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/gdpr', gdprRoutes);
 app.use('/api/search', searchRoutes);

@@ -221,7 +221,7 @@ router.post('/', upload.single('resume'), async (req: Request, res: Response): P
 
     // Send email to HR about new application
     const hrEmailSetting = await get<{ value: string }>("SELECT value FROM settings WHERE key = 'notification_email'");
-    const hrEmail = hrEmailSetting?.value || process.env.HR_NOTIFICATION_EMAIL;
+    const hrEmail: string | undefined = hrEmailSetting?.value || process.env.HR_NOTIFICATION_EMAIL;
     if (hrEmail) {
       sendNewApplicationEmailToHR(hrEmail, full_name, email, position, id, phone)
         .catch(err => console.error('HR email error:', err));
@@ -300,9 +300,9 @@ router.patch(
 
     // Send email to HR about status change
     const hrEmailSetting = await get<{ value: string }>("SELECT value FROM settings WHERE key = 'notification_email'");
-    const hrEmail = hrEmailSetting?.value || process.env.HR_NOTIFICATION_EMAIL;
+    const hrEmail: string | undefined = hrEmailSetting?.value || process.env.HR_NOTIFICATION_EMAIL;
     if (hrEmail) {
-      sendStatusChangeEmailToHR(hrEmail, existing.full_name, existing.position, existing.status, status, req.params.id)
+      sendStatusChangeEmailToHR(hrEmail, existing.full_name, existing.position, existing.status, status, String(req.params.id))
         .catch(err => console.error('HR status email error:', err));
     }
 
