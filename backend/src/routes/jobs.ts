@@ -5,9 +5,10 @@ import { v4 as uuidv4 } from 'uuid';
 const router = Router();
 
 // GET /api/jobs — All active jobs (public for candidates)
+// Supports: type, department, location, search, experience, salary_min, salary_max
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { type, department, search } = req.query;
+    const { type, department, search, location, salary_min, salary_max, experience } = req.query;
     let q = 'SELECT * FROM jobs WHERE is_active = TRUE';
     const params: any[] = [];
 
@@ -19,15 +20,38 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       params.push(department);
       q += ` AND department = $${params.length}`;
     }
+    if (location && location !== 'all') {
+      params.push(`%${location}%`);
+      q += ` AND location ILIKE $${params.length}`;
+    }
     if (search) {
       params.push(`%${search}%`);
       const idx = params.length;
-      q += ` AND (title ILIKE $${idx} OR description ILIKE $${idx} OR department ILIKE $${idx})`;
+      q += ` AND (title ILIKE $${idx} OR description ILIKE $${idx} OR department ILIKE $${idx} OR location ILIKE $${idx})`;
+    }
+    if (experience && experience !== 'all') {
+      params.push(`%${experience}%`);
+      q += ` AND (requirements ILIKE $${params.length} OR description ILIKE $${params.length})`;
     }
 
     q += ' ORDER BY created_at DESC';
     const { rows: jobs } = await query(q, params);
-    res.json({ jobs, total: jobs.length });
+
+    // Salary filter — salary_range is text like "Rs.15L - Rs.22L", filter by first number
+    let filtered = jobs;
+    if (salary_min || salary_max) {
+      const min = salary_min ? Number(salary_min) : 0;
+      const max = salary_max ? Number(salary_max) : Infinity;
+      filtered = jobs.filter((j: any) => {
+        if (!j.salary_range) return true;
+        const match = j.salary_range.match(/[\d.]+/);
+        if (!match) return true;
+        const val = parseFloat(match[0]);
+        return val >= min && val <= max;
+      });
+    }
+
+    res.json({ jobs: filtered, total: filtered.length });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

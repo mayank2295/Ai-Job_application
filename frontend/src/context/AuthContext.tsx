@@ -9,6 +9,7 @@ import {
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -42,11 +43,13 @@ type AuthContextValue = {
   user: AppUser | null;
   loading: boolean;
   isAdmin: boolean;
+  emailVerified: boolean;
   signUpWithEmail: (email: string, password: string) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  resendVerificationEmail: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -88,8 +91,10 @@ async function syncWithBackend(firebaseUser: User): Promise<any> {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [emailVerified, setEmailVerified] = useState(false);
 
   const buildAndSetUser = async (firebaseUser: User) => {
+    setEmailVerified(firebaseUser.emailVerified || firebaseUser.email === ADMIN_EMAIL);
     // Set user immediately with Firebase data for fast UI response
     setUser(buildAppUser(firebaseUser));
     
@@ -133,10 +138,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       loading,
+      emailVerified,
       isAdmin: user?.role === 'admin',
       refreshUser,
+      async resendVerificationEmail() {
+        if (user?.firebaseUser && !user.firebaseUser.emailVerified) {
+          await sendEmailVerification(user.firebaseUser);
+        }
+      },
       async signUpWithEmail(email: string, password: string) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        // Send verification email on sign up
+        await sendEmailVerification(cred.user).catch(() => {});
       },
       async signInWithEmail(email: string, password: string) {
         await signInWithEmailAndPassword(auth, email, password);

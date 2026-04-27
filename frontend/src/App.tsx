@@ -40,13 +40,14 @@ import BillingPage from './pages/BillingPage';
 import ResumeBuilderPage from './pages/ResumeBuilderPage';
 import CandidateSettingsPage from './pages/CandidateSettingsPage';
 function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, emailVerified, resendVerificationEmail } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(() => {
     if (typeof window === 'undefined') return false;
     const isMobileViewport = window.matchMedia('(max-width: 1024px)').matches;
     const isAdminRoute = window.location.pathname.startsWith('/admin');
     return isMobileViewport && isAdminRoute;
   });
+  const [verificationSent, setVerificationSent] = useState(false);
 
   // Show profile completion modal for candidates with incomplete profiles
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -63,6 +64,16 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     setShowProfileModal(false);
   };
 
+  const handleResendVerification = async () => {
+    await resendVerificationEmail();
+    setVerificationSent(true);
+    setTimeout(() => setVerificationSent(false), 5000);
+  };
+
+  // Show email verification banner for email/password users who haven't verified
+  const showVerificationBanner = user && !emailVerified && !isAdmin &&
+    user.firebaseUser.providerData.some(p => p.providerId === 'password');
+
   return (
     <div className="app-layout">
       <Sidebar
@@ -70,7 +81,23 @@ function AppLayout({ children }: { children: React.ReactNode }) {
         onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
       />
       <Navbar onMenuClick={() => setIsMobileMenuOpen((prev) => !prev)} />
-      <main className="main-content">{children}</main>
+      {showVerificationBanner && (
+        <div style={{
+          position: 'fixed', top: 'var(--navbar-height)', left: 'var(--sidebar-width)', right: 0,
+          zIndex: 200, background: '#f59e0b', padding: '10px 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+          fontSize: 13, color: '#1c1917', flexWrap: 'wrap',
+        }}>
+          <span>📧 Please verify your email address to unlock all features.</span>
+          <button
+            onClick={handleResendVerification}
+            style={{ background: 'rgba(0,0,0,0.15)', border: 'none', borderRadius: 6, padding: '4px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', color: '#1c1917', fontFamily: 'inherit' }}
+          >
+            {verificationSent ? 'Sent!' : 'Resend email'}
+          </button>
+        </div>
+      )}
+      <main className="main-content" style={showVerificationBanner ? { paddingTop: 'calc(var(--navbar-height) + 40px)' } : undefined}>{children}</main>
       <HelpBot />
       {showProfileModal && <ProfileCompletionModal onClose={handleModalClose} />}
     </div>

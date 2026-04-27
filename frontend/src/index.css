@@ -4038,3 +4038,92 @@ td { font-size: 13.5px; }
   }
   .page-hero-title { font-size: 17px; }
 }
+
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE RESPONSIVENESS — Additional fixes
+   ═══════════════════════════════════════════════════════════ */
+
+/* Job board advanced filter panel */
+@media (max-width: 767px) {
+  .job-board-advanced-filters {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* My Applications — status timeline scrollable on mobile */
+  .status-timeline {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  /* Candidate analytics table — horizontal scroll */
+  .candidate-analytics-table {
+    overflow-x: auto;
+  }
+
+  /* Profile page grid */
+  .profile-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Email verification banner adjusts for no sidebar */
+  .email-verify-banner {
+    left: 0 !important;
+  }
+
+  /* Page header buttons stack on mobile */
+  .page-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Notification bell panel full width on mobile */
+  .notification-panel {
+    width: calc(100vw - 24px) !important;
+    right: -8px !important;
+  }
+
+  /* Admin candidate analytics — hide less important columns */
+  .analytics-col-hide-mobile {
+    display: none;
+  }
+
+  /* Billing plan cards stack */
+  .billing-plans-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Interview page full width */
+  .interview-container {
+    padding: 12px !important;
+  }
+
+  /* ATS results grid */
+  .ats-results-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Resume builder steps */
+  .resume-wizard-steps {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+}
+
+/* Tablet-specific fixes */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .billing-plans-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .ats-results-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Fix main-content when verification banner is shown */
+@media (max-width: 1024px) {
+  .email-verify-banner {
+    left: 0 !important;
+  }
+}
