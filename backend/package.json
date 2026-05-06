@@ -1,7 +1,7 @@
 {
-  "name": "job-application-backend",
+  "name": "jobflow-ai-backend",
   "version": "1.0.0",
-  "description": "AI Job Application Automation System - Backend",
+  "description": "JobFlow AI — AI-powered hiring platform backend (Node.js, Express, TypeScript, PostgreSQL)",
   "main": "dist/server.js",
   "engines": {
     "node": "20.x"
