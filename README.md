@@ -1,6 +1,21 @@
 # JobFlow AI
 
-An AI-powered hiring platform for candidates and recruiters — built with React, Node.js, and PostgreSQL.
+> **Recommended repository name:** `jobflow-ai`
+>
+> **Recommended description:** *AI-powered hiring platform for candidates and recruiters — cover letter generation, ATS resume scoring, mock interviews, skill badges and CareerBot. React 19 · Node.js · TypeScript · PostgreSQL.*
+
+---
+
+![Node.js](https://img.shields.io/badge/Node.js-20.x-339933?logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-latest-4169E1?logo=postgresql&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-Auth-FFCA28?logo=firebase&logoColor=black)
+![GPT-4o-mini](https://img.shields.io/badge/AI-GPT--4o--mini-412991?logo=openai&logoColor=white)
+![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white)
+![Render](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=black)
+
+An AI-powered hiring platform for candidates and recruiters — built with React 19, Node.js, TypeScript, and PostgreSQL.
 
 **Live:**
 - Frontend: https://ai-job-application-eight.vercel.app
@@ -129,3 +144,11 @@ Never commit `.env` files. Set real values in Vercel and Render dashboards.
         ├── database/     db.ts (pg pool), schema.sql
         └── services/     emailService, powerAutomate, azureBlobStorage
 ```
+
+---
+
+## GitHub Topics
+
+Add the following topics to this repository for better discoverability:
+
+`typescript` `react` `nodejs` `postgresql` `firebase` `ai` `gpt-4` `job-search` `hiring-platform` `ats` `resume-analyzer` `career-tools` `openai` `tavily` `full-stack`
